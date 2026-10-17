@@ -19,8 +19,11 @@ export const photoResponseJsonSchema = {
     subject: { type: "string", enum: ["stool", "not_stool", "unclear"], description: "What the photo mainly shows." },
     image_usable: { type: "boolean", description: "False if too dark, blurry, cropped or not a stool photo." },
     unusable_reason: { type: "string", description: "Short reason when image_usable is false, else empty." },
+    // Nullable via a type array: the form Gemini's structured-output docs specify (anyOf is not in its supported subset).
     estimated_bristol_type: {
-      anyOf: [{ type: "integer", minimum: 1, maximum: 7 }, { type: "null" }],
+      type: ["integer", "null"],
+      minimum: 1,
+      maximum: 7,
       description: "Closest Bristol Stool Form Scale type, or null if it cannot be estimated.",
     },
     confidence: { type: "string", enum: ["low", "medium", "high"] },

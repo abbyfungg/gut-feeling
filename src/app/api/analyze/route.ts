@@ -1,4 +1,4 @@
-import { analyzePhoto, AiUnavailableError, getGeminiModel } from "@/lib/ai/gemini";
+import { analyzePhoto, AiUnavailableError, getGeminiModel, logAiFailure, photoFailureMessage } from "@/lib/ai/gemini";
 import { validateImageUpload } from "@/lib/ai/upload";
 import { rateLimit } from "@/lib/auth";
 import { saveAiDraft } from "@/lib/records";
@@ -22,14 +22,15 @@ export async function POST(req: Request) {
     const check = validateImageUpload(buf);
     if (!check.ok) return json({ error: check.error }, 400);
 
+    const started = Date.now();
     try {
       const analysis = await analyzePhoto(model, { mime: check.mime, data: buf });
       const analysisId = analysis.status === "ok" || analysis.result.estimatedType != null ? saveAiDraft(user, analysis.result) : null;
       return json({ ...analysis, analysisId });
     } catch (e) {
       if (e instanceof AiUnavailableError) {
-        console.warn("[analyze] model call failed");
-        return json({ status: "failed", message: "Photo help is having a moment. Pick the type that looks closest instead." }, 502);
+        logAiFailure("photo", model.name, e, Date.now() - started);
+        return json({ status: "failed", reason: e.kind, message: photoFailureMessage(e.kind) }, e.kind === "timeout" ? 504 : e.kind === "quota" ? 429 : 502);
       }
       throw e;
     }
