@@ -1,0 +1,8 @@
+node_modules
+.next
+data
+e2e-screens
+.env
+.env.*
+!.env.example
+.git

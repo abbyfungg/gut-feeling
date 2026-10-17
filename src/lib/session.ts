@@ -23,7 +23,7 @@ export async function requirePage(role: Role): Promise<User> {
 }
 
 export function sessionCookieOptions(expires: Date) {
-  return { httpOnly: true, sameSite: "lax" as const, secure: getConfig().isProduction, path: "/", expires };
+  return { httpOnly: true, sameSite: "lax" as const, secure: getConfig().cookieSecure, path: "/", expires };
 }
 
 /**

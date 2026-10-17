@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   output: "standalone",
   agentRules: false,
+  // Never bundle a local database into the build output.
+  outputFileTracingExcludes: { "*": ["./data/**", "./e2e-screens/**"] },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

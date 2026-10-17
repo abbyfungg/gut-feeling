@@ -1,7 +1,9 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function DeleteAccount() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,8 +36,10 @@ export function DeleteAccount() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ confirm: text }),
             }).catch(() => null);
-            if (res?.ok) window.location.href = "/";
-            else {
+            if (res?.ok) {
+              router.replace("/");
+              router.refresh();
+            } else {
               setError("Couldn't delete right now. Try again.");
               setBusy(false);
             }

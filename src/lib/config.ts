@@ -9,6 +9,8 @@ export function getConfig() {
     geminiApiKey: process.env.GEMINI_API_KEY || "",
     geminiModel: process.env.GEMINI_MODEL || "gemini-flash-latest",
     isProduction: process.env.NODE_ENV === "production",
+    /** Secure cookies need HTTPS. Defaults to on in production; set COOKIE_SECURE=false only for plain-HTTP testing. */
+    cookieSecure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === "true" : process.env.NODE_ENV === "production",
   };
 }
 

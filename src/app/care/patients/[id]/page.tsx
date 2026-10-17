@@ -36,7 +36,7 @@ export default async function CarePatient({ params, searchParams }: { params: Pr
   }
   const t = o.trends;
   // Show the last 10 days plus anything that is evidence; older entries fold away.
-  const cutoffDay = localDay(new Date(Date.now() - 9 * 86_400_000), tz);
+  const cutoffDay = localDay(new Date(new Date(o.trends.days[o.trends.days.length - 1].day + "T12:00:00Z").getTime() - 9 * 86_400_000), tz);
   const isRecent = (e: (typeof o.entries)[number]) => localDay(e.occurredAt, tz) >= cutoffDay || highlight.includes(e.id);
   const recentEntries = o.entries.filter(isRecent);
   const olderEntries = o.entries.filter((e) => !isRecent(e));

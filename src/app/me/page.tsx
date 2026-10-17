@@ -41,7 +41,7 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
   const movementToday = todays.some((e) => e.kind === "movement");
   const firstName = user.name.split(" ")[0];
   const line = LINES[Number(today.replaceAll("-", "")) % LINES.length];
-  const activeFlags = o.flags.filter((f) => f.status !== "reviewed" || Date.now() - new Date(f.windowEnd).getTime() < 3 * 86_400_000);
+  const activeFlags = o.flags.filter((f) => f.status !== "reviewed" || now.getTime() - new Date(f.windowEnd).getTime() < 3 * 86_400_000);
   const r = o.trends.recent;
   const common = bristolInfo(r.mostCommonType);
   const isEmpty = o.entries.length === 0;
