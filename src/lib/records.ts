@@ -452,5 +452,6 @@ export function setSharing(viewer: User, practitionerId: string, active: boolean
 /** Permanently deletes the patient's account and everything attached to it. */
 export function deleteAccount(viewer: User): void {
   if (viewer.role !== "patient") throw new AccessError();
+  if (viewer.isSynthetic) throw new InputError("Shared demo accounts can't be deleted.");
   getDb().prepare("DELETE FROM users WHERE id = ?").run(viewer.id);
 }

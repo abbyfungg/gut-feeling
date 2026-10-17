@@ -266,11 +266,18 @@ export function evaluateRules(
     });
   }
 
+  // Times formatted like "4:07 a.m." already end in a period.
+  for (const f of flags) f.whatChanged = f.whatChanged.replace(/\.\./g, ".");
+
   flags.sort((a, b) => (a.severity === b.severity ? b.windowEnd.localeCompare(a.windowEnd) : a.severity === "high" ? -1 : 1));
   return { flags, notices };
 }
 
-/** Groups time-sorted entries into clusters where some window of `windowMs` holds at least `minCount`. */
+/**
+ * Groups time-sorted entries into clusters where some window of `windowMs` holds at least `minCount`.
+ * Qualifying entries less than two windows apart are kept together so one continuing episode
+ * produces one flag instead of several.
+ */
 export function windowClusters(sorted: Entry[], windowMs: number, minCount: number): Entry[][] {
   const t = sorted.map((e) => new Date(e.occurredAt).getTime());
   const inQualifying = new Array(sorted.length).fill(false);
@@ -288,7 +295,7 @@ export function windowClusters(sorted: Entry[], windowMs: number, minCount: numb
       cur = [];
       continue;
     }
-    if (cur.length && t[i] - new Date(cur[cur.length - 1].occurredAt).getTime() > windowMs) {
+    if (cur.length && t[i] - new Date(cur[cur.length - 1].occurredAt).getTime() > 2 * windowMs) {
       clusters.push(cur);
       cur = [];
     }

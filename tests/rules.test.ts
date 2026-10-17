@@ -149,3 +149,13 @@ describe("evidence integrity", () => {
     expect(evaluateRules(es, now, TZ).flags).toHaveLength(0);
   });
 });
+
+describe("episode merging", () => {
+  it("keeps one continuing loose-stool episode as a single flag", () => {
+    const hours = [80, 70, 60, 34, 25, 10];
+    const es = hours.map((h, i) => entry({ id: `l${i}`, occurredAt: ago(now, h), bristolType: 6 }));
+    const loose = evaluateRules(es, now, TZ).flags.filter((f) => f.rule === "loose_stools");
+    expect(loose).toHaveLength(1);
+    expect(loose[0].evidenceIds).toHaveLength(6);
+  });
+});
