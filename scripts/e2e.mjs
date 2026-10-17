@@ -4,10 +4,12 @@
 import { chromium } from "playwright-core";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { DatabaseSync } from "node:sqlite";
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
-const OUT = path.resolve("e2e-screens");
+// Screenshots go outside the project so a dev server does not reload when they are written.
+const OUT = process.env.E2E_OUT || path.join(os.tmpdir(), "gut-feeling-e2e");
 fs.mkdirSync(OUT, { recursive: true });
 const exe = process.env.CHROMIUM_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const dbFile = path.join(process.env.DATA_DIR || "data", "gut-feeling.db");
@@ -152,6 +154,46 @@ const stamp = `e2e note ${Date.now()}`;
   const post = await page.request.post(`${BASE}/api/entries`, { data: { kind: "no_movement", occurredAt: new Date().toISOString(), notes: null }, headers: { Origin: BASE } });
   check(post.status() === 403, `practitioner cannot write patient entries (got ${post.status()})`);
   await ctx.close();
+}
+
+
+// ---- New user: sign up, empty state, share, log, appears for the nurse ----
+{
+  const { ctx, page } = await newPage({ width: 390, height: 844 });
+  const email = `new${Date.now()}@example.com`;
+  await page.goto(BASE + "/signup");
+  await page.getByLabel("What should we call you?").fill("Sam");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel(/Password/).fill("a-long-password");
+  await page.getByRole("button", { name: "Create my private diary" }).click();
+  await page.waitForURL("**/me?welcome=1");
+  check(await page.getByText("Let's get things moving").isVisible(), "new user sees the friendly empty state");
+  await shot(page, "15-new-user-empty");
+  await page.goto(BASE + "/me/sharing");
+  await page.getByRole("switch", { name: /Priya Raman/ }).click();
+  await page.getByText("Sharing", { exact: true }).first().waitFor();
+  await page.goto(BASE + "/me/log");
+  await page.locator("label.bristol-option", { hasText: "Smooth snake" }).click();
+  await page.getByRole("button", { name: "Felt fine" }).click();
+  await page.getByRole("button", { name: "Save to my diary" }).click();
+  await page.waitForURL("**/me?saved=1");
+  check(await page.getByText("Today's report: logged.").isVisible(), "new user can log an entry");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  check(!overflow, "no horizontal scroll on mobile home");
+  await ctx.close();
+
+  const n = await newPage({ width: 390, height: 844 });
+  await n.page.goto(BASE + "/signin");
+  await n.page.getByLabel("Email").fill("priya@demo.gutfeeling.health");
+  await n.page.getByLabel("Password").fill("everybodypoops");
+  await n.page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await n.page.waitForURL("**/care");
+  await n.page.goto(BASE + "/care?view=patients");
+  check(await n.page.getByRole("link", { name: "Sam" }).isVisible(), "newly shared patient appears in the nurse's caseload");
+  const o2 = await n.page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  check(!o2, "no horizontal page scroll on mobile care view");
+  await shot(n.page, "16-mobile-care");
+  await n.ctx.close();
 }
 
 // ---- Signed-out access ----

@@ -69,10 +69,10 @@ Check your Gemini setup with `node --env-file=.env.local scripts/check-gemini.mj
 npm run typecheck
 npm run lint
 npm test                                   # 66 unit/integration tests (vitest)
-BASE_URL=http://localhost:3000 npm run test:e2e   # 27 browser checks against a running server
+BASE_URL=http://localhost:3000 npm run test:e2e   # 32 browser checks against a running server
 ```
 
-The e2e script needs `playwright-core` (a dev dependency) and a Chromium binary; set `CHROMIUM_PATH` if yours isn't at the default sandbox path. It also needs `DATA_DIR` to point at the running server's data folder.
+The e2e script needs `playwright-core` (a dev dependency) and a Chromium binary; set `CHROMIUM_PATH` if yours isn't at the default sandbox path. It also needs `DATA_DIR` to point at the running server's data folder. Run it against `npm start` (production) rather than `npm run dev`. Screenshots go to your temp folder (`E2E_OUT` to change).
 
 ## AI status
 
