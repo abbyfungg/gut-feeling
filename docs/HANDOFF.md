@@ -11,7 +11,7 @@
 
 ## Verified
 - Typecheck, lint, 66 vitest tests, production build.
-- `scripts/e2e.mjs`: 29 browser checks covering logging, saving, practitioner view of the new entry, evidence links, review + follow-up, cross-patient and revoked access, cross-site POST blocking, mobile overflow.
+- `scripts/e2e.mjs`: 27 browser checks covering logging, saving, practitioner view of the new entry, evidence links, review + follow-up, cross-patient and revoked access, cross-site POST blocking, mobile overflow.
 
 ## Not verified
 - Live Gemini calls (no key during the build). Add a key and run `scripts/check-gemini.mjs`, then try a photo on `/me/log`.

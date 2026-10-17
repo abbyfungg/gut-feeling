@@ -30,6 +30,7 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
   const [ai, setAi] = useState<AiState>({ kind: "idle" });
   const [preview, setPreview] = useState<string | null>(null);
   const [peek, setPeek] = useState(false);
+  const [qualityTip, setQualityTip] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -40,7 +41,28 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
     return next.length ? next : null;
   };
 
+  /** Quick on-device check so very dark or washed-out photos get a retake tip before anything is uploaded. */
+  async function brightness(file: File): Promise<number | null> {
+    try {
+      const bmp = await createImageBitmap(file);
+      const c = document.createElement("canvas");
+      c.width = 48;
+      c.height = 48;
+      const ctx = c.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(bmp, 0, 0, 48, 48);
+      const d = ctx.getImageData(0, 0, 48, 48).data;
+      let sum = 0;
+      for (let i = 0; i < d.length; i += 4) sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+      return sum / (d.length / 4);
+    } catch {
+      return null; // e.g. HEIC on browsers that can't decode it; let the server decide
+    }
+  }
+
   async function analyze(file: File) {
+    const lum = await brightness(file);
+    setQualityTip(lum == null ? null : lum < 45 ? "This photo looks quite dark. Turning on a light or the flash usually helps." : lum > 235 ? "This photo looks very bright or washed out. Try without the flash." : null);
     setAi({ kind: "busy" });
     if (preview) URL.revokeObjectURL(preview);
     setPreview(URL.createObjectURL(file));
@@ -71,6 +93,7 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
   function clearPhoto() {
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
+    setQualityTip(null);
     setAi({ kind: "idle" });
     if (fileRef.current) fileRef.current.value = "";
   }
@@ -102,7 +125,10 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
       router.refresh();
       return;
     }
-    setError(body.error ?? "We couldn't save that. Check your connection and try again.");
+    if (res?.status === 400 && aiRef && /analysis has expired/.test(body.error ?? "")) {
+      clearPhoto();
+      setError("That photo suggestion expired, so we've removed it. Everything else you picked is still here; tap Save again.");
+    } else setError(body.error ?? "We couldn't save that. Check your connection and try again.");
     setSaving(false);
   }
 
@@ -179,6 +205,7 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
               </div>
             </div>
             <div aria-live="polite" style={{ marginTop: 12 }}>
+              {qualityTip && <p className="notice notice-med" style={{ marginBottom: 10 }}>{qualityTip}</p>}
               {ai.kind === "busy" && (
                 <p className="row" style={{ gap: 8 }}>
                   <span className="spinner" aria-hidden /> Taking a careful look…
