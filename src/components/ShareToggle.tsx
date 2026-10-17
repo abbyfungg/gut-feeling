@@ -8,7 +8,7 @@ export function ShareToggle({ practitionerId, name, active }: { practitionerId: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <div style={{ textAlign: "right" }}>
+    <div style={{ textAlign: "right", flex: "none" }}>
       <button
         type="button"
         role="switch"
@@ -32,11 +32,11 @@ export function ShareToggle({ practitionerId, name, active }: { practitionerId: 
           setBusy(false);
         }}
       />
-      <div className="hint" aria-live="polite">
+      <div className="tiny muted" aria-live="polite" style={{ marginTop: 4 }}>
         {on ? "Sharing" : "Not sharing"}
       </div>
       {error && (
-        <div className="hint" role="alert" style={{ color: "var(--high)" }}>
+        <div className="tiny" role="alert" style={{ color: "var(--high)" }}>
           {error}
         </div>
       )}

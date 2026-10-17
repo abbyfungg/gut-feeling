@@ -44,14 +44,19 @@ const stamp = `e2e note ${Date.now()}`;
   await page.getByRole("button", { name: /I'm Maya/ }).click();
   await page.waitForURL("**/me");
   await shot(page, "02-patient-home");
-  check(await page.getByRole("link", { name: /Log a movement/ }).isVisible(), "patient home has Log a movement");
-  check(await page.getByText("Worth a look").isVisible(), "patient sees plain-language flags");
+  check(await page.getByRole("link", { name: /Log a movement/ }).first().isVisible(), "patient home has Log a movement");
+  check(await page.locator("nav.tabbar").isVisible(), "app tab bar visible");
+  check(await page.getByRole("heading", { name: "Worth a look", exact: true }).isVisible(), "patient sees plain-language flags");
 
-  await page.getByRole("link", { name: /Log a movement/ }).click();
+  await page.getByRole("link", { name: /Log a movement/ }).first().click();
   await page.waitForURL("**/me/log");
   await shot(page, "03-log-form");
-  await page.locator("label.bristol-option", { hasText: "All liquid" }).click();
+  await page.locator("label.shape", { hasText: "All liquid" }).click();
+  await page.getByRole("button", { name: /^Next/ }).click();
+  check(await page.getByRole("heading", { name: "Any red or black colour?" }).isVisible(), "wizard moves to the colour step");
+  await page.getByRole("button", { name: /^Skip/ }).click();
   await page.getByRole("button", { name: "Urgency" }).click();
+  await page.getByRole("button", { name: /^Next/ }).click();
   await page.getByRole("button", { name: "Recently unwell" }).click();
   await page.getByLabel(/Notes/).fill(stamp);
   await page.getByRole("button", { name: "Save to my diary" }).click();
@@ -60,7 +65,9 @@ const stamp = `e2e note ${Date.now()}`;
   await shot(page, "04-saved");
 
   await page.goto(BASE + "/me/diary");
-  check(await page.getByText(stamp).isVisible(), "new entry appears in diary");
+  const row = page.locator(".list-row", { hasText: stamp }).first();
+  await row.locator("summary").click();
+  check(await row.getByText(stamp).isVisible(), "new entry appears in diary and expands");
   await page.goto(BASE + "/me/trends");
   await shot(page, "05-trends");
   await page.goto(BASE + "/me/sharing");
@@ -118,7 +125,7 @@ const stamp = `e2e note ${Date.now()}`;
   const maya = idOf("maya@demo.gutfeeling.health");
   await page.goto(`${BASE}/care/patients/${maya}`);
   await shot(page, "12-care-patient");
-  check(await page.getByText(stamp).isVisible(), "patient's new entry visible to practitioner");
+  check((await page.locator(".list-row", { hasText: stamp }).count()) === 1, "patient's new entry visible to practitioner");
   const flag = page.locator(".flag-card:has(details[open])").first();
   const evidence = await flag.locator(".evidence-chip").count();
   check(evidence > 0, `first flag cites evidence entries (${evidence})`);
@@ -173,8 +180,12 @@ const stamp = `e2e note ${Date.now()}`;
   await page.getByRole("switch", { name: /Priya Raman/ }).click();
   await page.getByText("Sharing", { exact: true }).first().waitFor();
   await page.goto(BASE + "/me/log");
-  await page.locator("label.bristol-option", { hasText: "Smooth snake" }).click();
+  await page.locator("label.shape", { hasText: "Smooth snake" }).click();
+  await page.getByRole("button", { name: /^Next/ }).click();
+  await page.getByRole("button", { name: "No", exact: true }).click();
+  await page.getByRole("button", { name: /^Next/ }).click();
   await page.getByRole("button", { name: "Felt fine" }).click();
+  await page.getByRole("button", { name: /^Next/ }).click();
   await page.getByRole("button", { name: "Save to my diary" }).click();
   await page.waitForURL("**/me?saved=1");
   check(await page.getByText("Today's report: logged.").isVisible(), "new user can log an entry");
@@ -196,9 +207,14 @@ const stamp = `e2e note ${Date.now()}`;
   await n.ctx.close();
 }
 
-// ---- Signed-out access ----
+// ---- Installable app + signed-out access ----
 {
   const { ctx, page } = await newPage();
+  const man = await page.request.get(`${BASE}/manifest.webmanifest`);
+  const mj = man.ok() ? await man.json() : {};
+  check(mj.display === "standalone" && mj.icons?.some((i) => i.sizes === "512x512"), "web app manifest is installable");
+  const sw = await page.request.get(`${BASE}/sw.js`);
+  check(sw.ok() && !(await sw.text()).includes("/api/\""), "service worker served");
   const r = await page.request.get(`${BASE}/api/entries`);
   check(r.status() === 401, `signed-out API returns 401 (got ${r.status()})`);
   await page.goto(BASE + "/care");

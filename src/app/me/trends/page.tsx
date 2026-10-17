@@ -1,13 +1,17 @@
 import Link from "next/link";
-import { Mascot } from "@/components/Mascot";
+import { AppBar } from "@/components/AppBar";
+import { BristolArt } from "@/components/BristolArt";
+import { Icon } from "@/components/Icon";
 import { TrendChart } from "@/components/TrendChart";
 import { getConfig } from "@/lib/config";
-import { BRISTOL, bristolInfo, symptomLabel } from "@/lib/domain";
+import { BRISTOL, symptomLabel } from "@/lib/domain";
 import { getPatientOverview } from "@/lib/records";
 import { requirePage } from "@/lib/session";
 import { addDays, localDay } from "@/lib/time";
 
-export const metadata = { title: "My patterns" };
+export const metadata = { title: "Insights" };
+
+const GROUP_COLOR = { hard: "var(--g-hard)", typical: "var(--sage-strong)", loose: "var(--g-loose)" } as const;
 
 export default async function Trends() {
   const user = await requirePage("patient");
@@ -23,110 +27,130 @@ export default async function Trends() {
   const symptomCounts = new Map<string, number>();
   for (const e of month) for (const s of e.symptoms ?? []) symptomCounts.set(s, (symptomCounts.get(s) ?? 0) + 1);
   const answered = month.filter((e) => e.symptoms !== null).length;
+  const typicalPct = t.recent.typicalShare == null ? null : Math.round(t.recent.typicalShare * 100);
+  const diff = t.comparable && t.recent.avgType != null && t.previous.avgType != null ? t.recent.avgType - t.previous.avgType : null;
 
   return (
-    <main id="main">
-      <div className="container stack-lg">
-        <div className="row" style={{ gap: 16 }}>
-          <Mascot mood="think" size={80} bob={false} />
-          <div>
-            <h1 style={{ marginBottom: 4 }}>My patterns</h1>
-            <p className="muted" style={{ margin: 0 }}>
-              Calculated from your own entries with simple, readable maths. No guesses.
-            </p>
+    <main id="main" className="screen">
+      <AppBar title="Insights" eyebrow="From your own logs" />
+      <div className="stack-lg">
+        <section className="hero-card fresh" aria-label="Summary">
+          <div className="stack-sm">
+            <span className="eyebrow">This week</span>
+            <h2 className="hero-title" style={{ fontSize: "var(--t-xl)" }}>
+              {t.headline}
+            </h2>
           </div>
-        </div>
+        </section>
 
-        <section className="card butter">
-          <h2 style={{ fontSize: "1.3rem" }}>{t.headline}</h2>
-          <div className="grid-3" style={{ marginTop: 10 }}>
-            <div className="stat">
-              <span className="stat-value">{t.recent.avgType ?? "–"}</span>
-              <span className="stat-label">average type, last 7 days</span>
-            </div>
-            <div className="stat">
-              <span className="stat-value">{t.previous.avgType ?? "–"}</span>
-              <span className="stat-label">average type, the 7 days before</span>
-            </div>
-            <div className="stat">
-              <span className="stat-value">{t.recent.typicalShare == null ? "–" : `${Math.round(t.recent.typicalShare * 100)}%`}</span>
-              <span className="stat-label">in the comfy middle (types 3–5)</span>
-            </div>
+        <section className="grid-3" aria-label="Key numbers">
+          <div className="card stat" style={{ padding: 14 }}>
+            <span className="stat-value">{t.recent.avgType ?? "–"}</span>
+            <span className="stat-label">avg type</span>
           </div>
-          {!t.comparable && (
-            <p className="hint" style={{ marginTop: 12, marginBottom: 0 }}>
-              We need at least 3 typed entries in each week to compare fairly. Until then we won&apos;t guess.
+          <div className="card stat" style={{ padding: 14 }}>
+            <span className="stat-value" style={{ color: diff == null ? undefined : Math.abs(diff) < 1 ? "var(--ok)" : "var(--med)" }}>
+              {diff == null ? "–" : `${diff > 0 ? "+" : ""}${diff.toFixed(1)}`}
+            </span>
+            <span className="stat-label">vs last week</span>
+          </div>
+          <div className="card stat" style={{ padding: 14 }}>
+            <span className="stat-value">{typicalPct == null ? "–" : `${typicalPct}%`}</span>
+            <span className="stat-label">in types 3–5</span>
+          </div>
+        </section>
+        {!t.comparable && (
+          <p className="tiny muted" style={{ margin: "-10px 4px 0" }}>
+            We compare once each week has 3+ typed logs. Until then, no guessing.
+          </p>
+        )}
+
+        <section className="card stack-sm" aria-labelledby="days">
+          <h2 id="days" style={{ fontSize: "var(--t-lg)" }}>
+            Last 3 weeks
+          </h2>
+          <TrendChart days={t.days} title="Your last three weeks" />
+        </section>
+
+        <section className="card stack-sm" aria-labelledby="shapes">
+          <div className="section-head">
+            <h2 id="shapes" style={{ fontSize: "var(--t-lg)" }}>
+              Shapes this month
+            </h2>
+            <span className="pill">{typed.length} typed</span>
+          </div>
+          {typed.length === 0 ? (
+            <p className="muted small">No typed logs in the last 30 days.</p>
+          ) : (
+            <div className="stack-sm">
+              {dist.map((d) => (
+                <div key={d.type} className="row" style={{ gap: 10 }}>
+                  <span style={{ width: 44, flex: "none", display: "grid", placeItems: "center" }}>
+                    <BristolArt type={d.type} size={40} />
+                  </span>
+                  <span className="small bold" style={{ width: 104, flex: "none" }}>
+                    {d.nickname}
+                  </span>
+                  <span className="bar-track grow">
+                    <span className="bar-fill" style={{ display: "block", width: `${(d.n / maxN) * 100}%`, background: GROUP_COLOR[d.group] }} />
+                  </span>
+                  <span className="small bold" style={{ width: 22, textAlign: "right" }}>
+                    {d.n}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="card stack-sm" aria-labelledby="felt">
+          <h2 id="felt" style={{ fontSize: "var(--t-lg)" }}>
+            How you&apos;ve felt
+          </h2>
+          {answered === 0 ? (
+            <p className="muted small" style={{ margin: 0 }}>
+              Not answered this month. That&apos;s fine, it&apos;s optional.
+            </p>
+          ) : symptomCounts.size === 0 ? (
+            <p className="small" style={{ margin: 0 }}>
+              No symptoms reported. Lovely.
+            </p>
+          ) : (
+            <div className="chips">
+              {[...symptomCounts.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .map(([s, n]) => (
+                  <span key={s} className="pill">
+                    {symptomLabel(s)} <strong>×{n}</strong>
+                  </span>
+                ))}
+            </div>
+          )}
+          {answered > 0 && (
+            <p className="tiny muted" style={{ margin: 0 }}>
+              Answered on {answered} of {month.length} logs. Skipped ones don&apos;t count as fine.
             </p>
           )}
         </section>
 
-        <section className="card">
-          <h2>Three weeks, day by day</h2>
-          <TrendChart days={t.days} title="Your last three weeks" />
-        </section>
+        {o.notices.map((n, i) => (
+          <p key={i} className="notice notice-info" style={{ margin: 0 }}>
+            {n.message}
+          </p>
+        ))}
 
-        <div className="grid-2" style={{ alignItems: "start" }}>
-          <section className="card">
-            <h2>Shapes this month</h2>
-            {typed.length === 0 ? (
-              <p className="muted">No typed entries in the last 30 days.</p>
-            ) : (
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                {dist.map((d) => (
-                  <li key={d.type} style={{ display: "grid", gridTemplateColumns: "130px 1fr 28px", gap: 10, alignItems: "center", marginBottom: 8 }}>
-                    <span style={{ fontWeight: 700 }}>
-                      {d.type} · {d.nickname}
-                    </span>
-                    <span style={{ background: "#f6ebdf", borderRadius: 999, height: 14, overflow: "hidden" }}>
-                      <span style={{ display: "block", height: "100%", width: `${(d.n / maxN) * 100}%`, background: d.group === "typical" ? "#7bbf91" : d.group === "loose" ? "#f4a37c" : "#a86e45", borderRadius: 999 }} />
-                    </span>
-                    <span className="muted" style={{ textAlign: "right" }}>
-                      {d.n}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          <section className="card">
-            <h2>How you&apos;ve felt</h2>
-            {answered === 0 ? (
-              <p className="muted">You haven&apos;t answered the &ldquo;how did you feel&rdquo; question this month. That&apos;s fine; it&apos;s optional.</p>
-            ) : (
-              <>
-                <p className="hint">You answered on {answered} of {month.length} entries. Skipped ones aren&apos;t counted as &ldquo;fine&rdquo;.</p>
-                {symptomCounts.size === 0 ? (
-                  <p>No symptoms reported. Lovely.</p>
-                ) : (
-                  <div className="chips">
-                    {[...symptomCounts.entries()]
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([s, n]) => (
-                        <span key={s} className="pill pill-neutral" style={{ fontSize: "0.9rem" }}>
-                          {symptomLabel(s)} × {n}
-                        </span>
-                      ))}
-                  </div>
-                )}
-              </>
-            )}
-          </section>
-        </div>
-
-        {o.notices.length > 0 && (
-          <section className="stack">
-            {o.notices.map((n, i) => (
-              <p key={i} className="notice notice-info">
-                {n.kind === "logging_gap" ? "Quiet stretch in your diary: " : ""}
-                {n.message}
-              </p>
-            ))}
-          </section>
-        )}
-        <p className="hint">
-          Most common recently: {bristolInfo(t.recent.mostCommonType)?.nickname ?? "not enough data"}. Want a summary to bring to an appointment?{" "}
-          <Link href="/me/visit">Make visit notes</Link>.
-        </p>
+        <Link href="/me/visit" className="tile tint-peach" style={{ minHeight: 0, flexDirection: "row", alignItems: "center" }}>
+          <span className="tile-icon">
+            <Icon name="clipboard" />
+          </span>
+          <span className="grow">
+            <span className="tile-label" style={{ display: "block" }}>
+              Seeing someone soon?
+            </span>
+            <span className="tile-sub">Make one-page visit notes</span>
+          </span>
+          <Icon name="chevron" />
+        </Link>
       </div>
     </main>
   );

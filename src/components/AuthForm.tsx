@@ -38,7 +38,7 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
       </div>
       <div className="field">
         <label htmlFor="password">
-          Password {mode === "signup" && <span className="hint">(at least 10 characters)</span>}
+          Password {mode === "signup" && <span className="faint" style={{ fontWeight: 500 }}>(10+ characters)</span>}
         </label>
         <input
           id="password"
@@ -54,7 +54,7 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
           {error}
         </p>
       )}
-      <button className="btn btn-primary btn-big" type="submit" disabled={busy} style={{ width: "100%" }}>
+      <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={busy} style={{ marginTop: 6 }}>
         {busy && <span className="spinner" aria-hidden />}
         {mode === "signin" ? "Sign in" : "Create my private diary"}
       </button>

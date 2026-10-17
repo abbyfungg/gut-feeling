@@ -1,96 +1,152 @@
 import Link from "next/link";
+import { AppBar, initials } from "@/components/AppBar";
 import { DeleteAccount } from "@/components/DeleteAccount";
-import { Mascot } from "@/components/Mascot";
+import { Icon } from "@/components/Icon";
+import { InstallApp } from "@/components/InstallApp";
 import { ShareToggle } from "@/components/ShareToggle";
+import { SignOutButton } from "@/components/SignOutButton";
 import { getConfig, isGeminiConfigured } from "@/lib/config";
 import { listReviewsForPatient, listSharing } from "@/lib/records";
 import { requirePage } from "@/lib/session";
 import { formatDateTime } from "@/lib/time";
 
-export const metadata = { title: "Sharing & privacy" };
+export const metadata = { title: "You" };
 
 export default async function Sharing() {
   const user = await requirePage("patient");
   const tz = getConfig().timezone;
   const shares = listSharing(user);
   const reviews = listReviewsForPatient(user);
+  const activeCount = shares.filter((s) => s.status === "active").length;
   return (
-    <main id="main">
-      <div className="container narrow stack-lg">
-        <div className="row" style={{ gap: 16 }}>
-          <Mascot mood="calm" size={80} />
-          <div>
-            <h1 style={{ marginBottom: 4 }}>Sharing &amp; privacy</h1>
-            <p className="muted" style={{ margin: 0 }}>
-              Your diary is yours. Here&apos;s exactly who can see it.
-            </p>
+    <main id="main" className="screen">
+      <AppBar title="You" eyebrow="Profile & privacy" />
+      <div className="stack-lg">
+        <section className="card row" style={{ gap: 14 }} aria-label="Profile">
+          <span className="avatar lg">{initials(user.name)}</span>
+          <div className="grow" style={{ minWidth: 0 }}>
+            <div className="bold" style={{ fontSize: "var(--t-lg)" }}>
+              {user.name}
+            </div>
+            <div className="small muted" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+              {user.email}
+            </div>
+            <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>
+              <span className={`pill ${activeCount ? "pill-lav" : ""}`}>
+                <Icon name={activeCount ? "users" : "lock"} size={12} /> {activeCount ? `Shared with ${activeCount}` : "Private"}
+              </span>
+              {user.isSynthetic && <span className="pill pill-synthetic">Demo account</span>}
+            </div>
           </div>
-        </div>
+        </section>
 
-        <section className="card">
-          <h2>Who can see my diary</h2>
-          <p className="hint">
-            When sharing is on, that person can see all your entries, notes and the patterns Gut Feeling spots, and can record that they reviewed them.
-            Turn it off and their access stops immediately. They can&apos;t edit or delete your entries.
+        <InstallApp />
+
+        <section className="stack-sm" aria-labelledby="care-team">
+          <div className="section-head">
+            <h2 id="care-team">Sharing &amp; privacy</h2>
+          </div>
+          <p className="tiny muted" style={{ margin: "0 4px" }}>
+            Sharing lets them see your logs, notes and patterns, and record a review. Turn it off and access stops instantly. They can&apos;t edit anything.
           </p>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }} className="stack">
+          <div className="list">
             {shares.map((s) => (
-              <li key={s.practitioner.id} className="card tight flat row between" style={{ alignItems: "flex-start" }}>
-                <div style={{ flex: 1, minWidth: 220 }}>
-                  <strong>{s.practitioner.name}</strong>
-                  <div className="muted">
-                    {s.practitioner.title} · {s.practitioner.organization}
+              <div key={s.practitioner.id} className="list-row">
+                <div className="row-main" style={{ cursor: "default" }}>
+                  <span className="avatar sm" style={{ background: s.status === "active" ? "var(--lavender)" : "var(--surface-3)", color: "var(--ink)" }}>
+                    {initials(s.practitioner.name.replace(/^Dr\.\s*/, ""))}
+                  </span>
+                  <div className="grow" style={{ minWidth: 0 }}>
+                    <div className="row-title">{s.practitioner.name}</div>
+                    <div className="tiny muted">{s.practitioner.title}</div>
+                    <div className="tiny faint">
+                      {s.status === "active" && s.grantedAt && `Since ${formatDateTime(s.grantedAt, tz)}`}
+                      {s.status === "revoked" && s.revokedAt && `Stopped ${formatDateTime(s.revokedAt, tz)}`}
+                      {s.status === "never" && (s.practitioner.organization ?? "Never shared")}
+                    </div>
                   </div>
-                  {s.practitioner.about && <div className="hint">{s.practitioner.about}</div>}
-                  <div className="hint" style={{ marginTop: 4 }}>
-                    {s.status === "active" && s.grantedAt && `Sharing since ${formatDateTime(s.grantedAt, tz)}`}
-                    {s.status === "revoked" && s.revokedAt && `You stopped sharing on ${formatDateTime(s.revokedAt, tz)}`}
-                    {s.status === "never" && "Never shared"}
-                  </div>
+                  <ShareToggle practitionerId={s.practitioner.id} name={s.practitioner.name} active={s.status === "active"} />
                 </div>
-                <ShareToggle practitionerId={s.practitioner.id} name={s.practitioner.name} active={s.status === "active"} />
-              </li>
+              </div>
             ))}
-          </ul>
-          <p className="hint" style={{ marginTop: 12, marginBottom: 0 }}>
-            In this prototype the care-team directory is a fixed list of fictional clinicians.
+          </div>
+          <p className="tiny faint" style={{ margin: "0 4px" }}>
+            Prototype: the care-team directory is a fixed list of fictional clinicians.
           </p>
         </section>
 
-        <section className="card">
-          <h2>Who has reviewed my diary</h2>
+        <section className="stack-sm" aria-labelledby="reviews">
+          <div className="section-head">
+            <h2 id="reviews">Reviews</h2>
+            <span className="pill">{reviews.length}</span>
+          </div>
           {reviews.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>
-              Nobody has recorded a review yet.
-            </p>
+            <div className="card flat small muted">Nobody has recorded a review yet.</div>
           ) : (
-            <ul style={{ paddingLeft: 18, margin: 0 }}>
+            <div className="list">
               {reviews.map((r) => (
-                <li key={r.id} style={{ marginBottom: 8 }}>
-                  <strong>{r.practitionerName}</strong> reviewed &ldquo;{r.flagTitle.toLowerCase()}&rdquo; on {formatDateTime(r.createdAt, tz)}: {r.decisionLabel}.
-                  {r.followUpStatus === "open" && " A follow-up is planned."}
-                  {r.followUpStatus === "done" && " Follow-up done."}
-                </li>
+                <div key={r.id} className="list-row">
+                  <div className="row-main" style={{ cursor: "default", alignItems: "flex-start" }}>
+                    <span className="insight-icon ok" aria-hidden style={{ width: 36, height: 36, borderRadius: 12 }}>
+                      <Icon name="check" size={18} />
+                    </span>
+                    <div className="grow" style={{ minWidth: 0 }}>
+                      <div className="row-title">{r.decisionLabel}</div>
+                      <div className="tiny muted">
+                        {r.practitionerName} · {formatDateTime(r.createdAt, tz)}
+                      </div>
+                      <div className="tiny faint">About: {r.flagTitle.toLowerCase()}</div>
+                    </div>
+                    {r.followUpStatus === "open" && <span className="pill pill-med">Follow-up planned</span>}
+                    {r.followUpStatus === "done" && <span className="pill pill-ok">Done</span>}
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </section>
 
-        <section className="card">
-          <h2>Photos and AI</h2>
-          <p style={{ marginBottom: 0 }}>
-            {isGeminiConfigured()
-              ? "Photo help is on. If you add a photo, it's sent to Google's Gemini API for a suggestion and then discarded. We never save photos. You can always skip photos and pick a type yourself."
-              : "Photo help is off on this server, so no photos are uploaded anywhere."}{" "}
-            <Link href="/privacy">Full privacy notes</Link>
-          </p>
+        <section className="list" aria-label="More">
+          <div className="list-row">
+          <Link href="/me/visit" className="row-main" style={{ textDecoration: "none", color: "inherit" }}>
+            <span className="stat-icon tint-peach" style={{ margin: 0 }}>
+              <Icon name="clipboard" size={18} />
+            </span>
+            <span className="grow bold">Visit notes</span>
+            <Icon name="chevron" size={18} />
+          </Link>
+          </div>
+          <div className="list-row">
+          <Link href="/privacy" className="row-main" style={{ textDecoration: "none", color: "inherit" }}>
+            <span className="stat-icon tint-sky" style={{ margin: 0 }}>
+              <Icon name="lock" size={18} />
+            </span>
+            <span className="grow">
+              <span className="bold" style={{ display: "block" }}>
+                Photos &amp; AI
+              </span>
+              <span className="tiny muted">{isGeminiConfigured() ? "Photos go to Gemini for a suggestion, then are discarded. Never saved." : "Photo help is off. No photos are uploaded."}</span>
+            </span>
+            <Icon name="chevron" size={18} />
+          </Link>
+          </div>
         </section>
 
-        <section className="card">
-          <h2>Delete everything</h2>
-          <p className="hint">You can delete single entries from your diary, or everything at once here.</p>
-          {user.isSynthetic ? <p className="hint">This is a shared demo account, so deleting it is turned off.</p> : <DeleteAccount />}
-        </section>
+        <div className="row between">
+          <SignOutButton />
+        </div>
+
+        <details className="card flat">
+          <summary className="bold small" style={{ cursor: "pointer", color: "var(--high)" }}>
+            Delete everything
+          </summary>
+          <div className="stack-sm" style={{ marginTop: 12 }}>
+            <p className="small muted" style={{ margin: 0 }}>
+              Delete single logs from your diary, or everything at once here.
+            </p>
+            {user.isSynthetic ? <p className="small muted">This is a shared demo account, so deleting it is turned off.</p> : <DeleteAccount />}
+          </div>
+        </details>
       </div>
     </main>
   );

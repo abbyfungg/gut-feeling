@@ -27,6 +27,14 @@ Built at Hack the Valley 11 for PointClickCare's *Catch It Early* challenge. **P
 
 **Security**: scrypt password hashes, httpOnly session cookies (hashed server-side), same-origin checks on every write, server-side authorisation on every read (patients see only themselves; clinicians see only patients actively sharing with them; unknown and forbidden records both return 404), login rate limiting, upload validation by file signature and size, zod validation of all inputs and model outputs, security headers.
 
+## Install it like an app
+
+Gut Feeling is an installable web app (PWA). On your deployed link:
+- **iPhone (Safari):** Share → Add to Home Screen.
+- **Android / Chrome / Edge:** the Install button on the You tab, or the browser menu → Install app.
+
+It opens full-screen with its own icon. The service worker only caches public build files; diary pages and API responses are never stored on the device.
+
 ## Run it locally
 
 Needs **Node 22.5+** (uses the built-in `node:sqlite`).

@@ -21,6 +21,8 @@ export interface Flag {
   severity: FlagSeverity;
   /** Clinical title for the care team */
   title: string;
+  /** Short, plain title shown to the person themselves */
+  patientTitle: string;
   /** What changed, in one sentence, generated from the data */
   whatChanged: string;
   /** Window the supporting observations cover */

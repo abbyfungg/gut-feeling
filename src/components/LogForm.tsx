@@ -1,5 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { BRISTOL, CONTEXT_TAGS, SYMPTOMS, bristolInfo, type BloodReport, type ContextId, type SymptomId } from "@/lib/domain";
 import { BristolArt } from "./BristolArt";
@@ -33,6 +34,7 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
   const [qualityTip, setQualityTip] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const toggle = <T extends string>(list: T[] | null, id: T): T[] | null => {
@@ -133,189 +135,213 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
   }
 
   const aiType = ai.kind === "result" ? ai.estimatedType : null;
+  const STEPS = 4;
+  const last = step === STEPS - 1;
+  const answered = [true, blood !== null, symptoms !== null, true][step];
+  const go = (n: number) => {
+    setStep(Math.max(0, Math.min(STEPS - 1, n)));
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        save();
+        if (last) save();
+        else go(step + 1);
       }}
-      style={{ marginTop: 18 }}
+      className="stack-lg"
+      style={{ paddingTop: 14 }}
     >
-      <section className="card log-section">
-        <fieldset>
-          <legend>When?</legend>
-          <div className="segmented" role="group" aria-label="When did it happen">
-            <button type="button" aria-pressed={when === "now"} onClick={() => setWhen("now")}>
-              Just now
-            </button>
-            <button type="button" aria-pressed={when === "earlier"} onClick={() => setWhen("earlier")}>
-              Earlier
-            </button>
-          </div>
-          {when === "earlier" && (
-            <div className="field" style={{ marginTop: 12, maxWidth: 320 }}>
-              <label htmlFor="when">Date and time</label>
-              <input id="when" type="datetime-local" value={earlier} max={nowInput} onChange={(e) => setEarlier(e.target.value)} required />
-            </div>
-          )}
-        </fieldset>
-      </section>
+      <div className="wizard-top">
+        <Link href="/me" className="icon-btn" aria-label="Close without saving">
+          <Icon name="x" />
+        </Link>
+        <div className="progress" role="progressbar" aria-label="Progress" aria-valuemin={1} aria-valuemax={STEPS} aria-valuenow={step + 1}>
+          <span style={{ width: `${((step + 1) / STEPS) * 100}%` }} />
+        </div>
+        <span className="small bold muted" style={{ minWidth: 34, textAlign: "right" }}>
+          {step + 1}/{STEPS}
+        </span>
+      </div>
 
-      <section className="card log-section">
-        <h2 style={{ fontSize: "1.15rem" }}>Photo help (optional)</h2>
-        {aiEnabled ? (
-          <>
-            <p className="hint">
-              Snap a photo and Gemini will suggest the closest type. You always get the final say. The photo is sent for analysis, then thrown away;
-              we never store it.
+      {step === 0 && (
+        <div className="screen stack" key="s0">
+          <div>
+            <h1 className="step-title">What did it look like?</h1>
+            <p className="muted small" style={{ margin: "6px 0 0" }}>
+              Pick the closest shape. Not sure is fine too.
             </p>
-            <div className="photo-drop">
-              {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt="Your photo (blurred for privacy)" className={`photo-preview${peek ? " peek" : ""}`} />
-              ) : (
-                <Mascot mood="think" size={72} bob={false} />
+          </div>
+
+          {aiEnabled ? (
+            <div className="stack-sm">
+              <label className="photo-cta">
+                {preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={preview} alt="Your photo (blurred for privacy)" className={`photo-thumb${peek ? " peek" : ""}`} />
+                ) : (
+                  <span className="cta-icon">
+                    <Icon name="camera" size={24} />
+                  </span>
+                )}
+                <span className="grow">
+                  <span className="bold" style={{ display: "block" }}>
+                    {preview ? "Use a different photo" : "Snap a photo"}
+                  </span>
+                  <span className="tiny" style={{ opacity: 0.75 }}>
+                    Gemini suggests a shape. Photo is never stored.
+                  </span>
+                </span>
+                <Icon name="chevron" size={18} />
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic"
+                  capture="environment"
+                  className="visually-hidden"
+                  aria-label="Take or choose a photo"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) analyze(f);
+                  }}
+                />
+              </label>
+              {preview && (
+                <div className="row" style={{ gap: 6 }}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPeek((p) => !p)}>
+                    {peek ? "Blur it again" : "Peek at photo"}
+                  </button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={clearPhoto}>
+                    Remove photo
+                  </button>
+                </div>
               )}
-              <div className="stack" style={{ flex: 1, minWidth: 200 }}>
-                <label className="btn btn-soft" style={{ width: "fit-content", marginBottom: 0 }}>
-                  <Icon name="camera" /> {preview ? "Use a different photo" : "Take or choose a photo"}
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/heic"
-                    capture="environment"
-                    className="visually-hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) analyze(f);
-                    }}
-                  />
-                </label>
-                {preview && (
-                  <div className="row" style={{ gap: 6 }}>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPeek((p) => !p)}>
-                      {peek ? "Blur it again" : "Peek at photo"}
-                    </button>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={clearPhoto}>
-                      Remove photo
-                    </button>
+              <div aria-live="polite" className="stack-sm">
+                {qualityTip && <p className="notice notice-med" style={{ margin: 0 }}>{qualityTip}</p>}
+                {ai.kind === "busy" && (
+                  <div className="ai-card row" style={{ gap: 10 }}>
+                    <span className="spinner" aria-hidden /> Taking a careful look…
+                  </div>
+                )}
+                {ai.kind === "error" && <p className="notice notice-info" style={{ margin: 0 }}>{ai.message}</p>}
+                {ai.kind === "result" && (
+                  <div className="ai-card stack-sm">
+                    <div className="row" style={{ gap: 8 }}>
+                      <Icon name="sparkle" size={18} />
+                      {ai.status === "ok" && ai.estimatedType ? (
+                        <strong>
+                          Looks like type {ai.estimatedType}: {bristolInfo(ai.estimatedType)?.nickname}
+                        </strong>
+                      ) : (
+                        <strong>{ai.message}</strong>
+                      )}
+                    </div>
+                    {ai.status === "ok" && ai.estimatedType && (
+                      <div className="row wrap" style={{ gap: 6 }}>
+                        <span className="pill pill-lav">{ai.confidence} confidence</span>
+                        <span className="tiny">Selected below. Change it if it&apos;s off.</span>
+                      </div>
+                    )}
+                    {ai.observations.length > 0 && (
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {ai.observations.map((o, i) => (
+                          <li key={i}>{o}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="tiny" style={{ margin: 0, opacity: 0.85 }}>
+                      AI estimate, not a diagnosis. {ai.limitations}
+                    </p>
+                    {ai.colorAttention && (
+                      <p className="tiny" style={{ margin: 0 }}>
+                        Colours are hard to judge in photos. If you noticed red or black yourself, say so on the next step.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
             </div>
-            <div aria-live="polite" style={{ marginTop: 12 }}>
-              {qualityTip && <p className="notice notice-med" style={{ marginBottom: 10 }}>{qualityTip}</p>}
-              {ai.kind === "busy" && (
-                <p className="row" style={{ gap: 8 }}>
-                  <span className="spinner" aria-hidden /> Taking a careful look…
-                </p>
-              )}
-              {ai.kind === "error" && <p className="notice notice-info">{ai.message}</p>}
-              {ai.kind === "result" && (
-                <div className="ai-result">
-                  {ai.status === "ok" && ai.estimatedType ? (
-                    <p style={{ fontWeight: 700 }}>
-                      Looks closest to type {ai.estimatedType}: {bristolInfo(ai.estimatedType)?.nickname} ({ai.confidence} confidence). We&apos;ve
-                      selected it below; change it if it&apos;s not right.
-                    </p>
-                  ) : (
-                    <p style={{ fontWeight: 700 }}>{ai.message}</p>
-                  )}
-                  {ai.observations.length > 0 && (
-                    <ul style={{ margin: "0 0 8px", paddingLeft: 18 }}>
-                      {ai.observations.map((o, i) => (
-                        <li key={i}>{o}</li>
-                      ))}
-                    </ul>
-                  )}
-                  <p className="hint" style={{ margin: 0 }}>
-                    AI estimate, not a diagnosis. {ai.limitations}
-                  </p>
-                  {ai.colorAttention && (
-                    <p className="hint" style={{ margin: "8px 0 0" }}>
-                      The colours in this photo are hard to judge, and lighting or food can change them. If you noticed any red or black colour
-                      yourself, please say so below.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <p className="hint" style={{ margin: 0 }}>
-            Photo help isn&apos;t switched on for this server, so there&apos;s nothing to upload. Just pick the shape that looks closest below; it works
-            just as well.
-          </p>
-        )}
-      </section>
+          ) : (
+            <p className="tiny muted row" style={{ margin: 0, gap: 6 }}>
+              <Icon name="info" size={14} /> Photo help isn&apos;t switched on for this server. Picking a shape works just as well.
+            </p>
+          )}
 
-      <section className="card log-section">
-        <fieldset>
-          <legend>Which looks closest?</legend>
-          <p className="hint">The Bristol Stool Form Scale, minus the awkwardness. Types 3–5 are the comfy middle.</p>
-          <div className="bristol-grid">
-            {BRISTOL.map((b) => (
-              <label key={b.type} className="bristol-option" data-group={b.group}>
-                <input type="radio" name="bristol" value={b.type} checked={type === b.type} onChange={() => setType(b.type)} />
-                {aiType === b.type && <span className="pill pill-lav ai-badge">AI pick</span>}
-                <span className="b-art">
-                  <BristolArt type={b.type} size={70} />
+          <fieldset>
+            <legend className="visually-hidden">Which looks closest?</legend>
+            <div className="shape-grid">
+              {BRISTOL.map((b) => (
+                <label key={b.type} className="shape" data-group={b.group}>
+                  <input type="radio" name="bristol" value={b.type} checked={type === b.type} onChange={() => setType(b.type)} />
+                  {aiType === b.type && <span className="pill pill-lav ai-badge">AI pick</span>}
+                  <span className="shape-art">
+                    <BristolArt type={b.type} size={64} />
+                  </span>
+                  <span className="shape-num">Type {b.type}</span>
+                  <span className="shape-name">{b.nickname}</span>
+                  <span className="shape-desc">{b.description}</span>
+                </label>
+              ))}
+              <label className="shape" data-group="skip">
+                <input type="radio" name="bristol" value="" checked={type === null} onChange={() => setType(null)} />
+                <span className="shape-art">
+                  <span aria-hidden style={{ fontSize: 30, fontFamily: "var(--font-display)", fontWeight: 800, color: "var(--ink-3)" }}>
+                    ?
+                  </span>
                 </span>
-                <span className="b-type">Type {b.type}</span>
-                <span className="b-name">{b.nickname}</span>
-                <span className="b-desc">{b.description}</span>
+                <span className="shape-num">Skip</span>
+                <span className="shape-name">Not sure</span>
+                <span className="shape-desc">Log it without a type</span>
               </label>
-            ))}
-            <label className="bristol-option skip">
-              <input type="radio" name="bristol" value="" checked={type === null} onChange={() => setType(null)} />
-              <span className="b-art">
-                <span aria-hidden style={{ fontSize: 28, fontFamily: "var(--font-display)", fontWeight: 600, color: "var(--cocoa-deep)" }}>
-                  ?
-                </span>
-              </span>
-              <span className="b-type">Skip</span>
-              <span className="b-name">Not sure</span>
-              <span className="b-desc">Log it without a type</span>
-            </label>
-          </div>
-        </fieldset>
-      </section>
+            </div>
+          </fieldset>
+        </div>
+      )}
 
-      <section className="card log-section">
-        <fieldset>
-          <legend>Did you notice any red or black colour?</legend>
-          <p className="hint">Beets, iron and some medicines can change colour too. Your answer helps your care team know what to ask.</p>
-          <div className="segmented" role="group" aria-label="Red or black colour">
+      {step === 1 && (
+        <div className="screen stack" key="s1">
+          <div>
+            <h1 className="step-title">Any red or black colour?</h1>
+            <p className="muted small" style={{ margin: "6px 0 0" }}>
+              Beets, iron and some medicines can change colour too.
+            </p>
+          </div>
+          <div className="option-list" role="group" aria-label="Red or black colour">
             {(
               [
-                [null, "Skip"],
-                ["no", "No"],
-                ["yes", "Yes"],
-                ["unsure", "Not sure"],
+                ["no", "No", "check", "tint-sage"],
+                ["yes", "Yes", "drop", "tint-blush"],
+                ["unsure", "Not sure", "info", "tint-butter"],
               ] as const
-            ).map(([v, label]) => (
-              <button key={label} type="button" aria-pressed={blood === v} onClick={() => setBlood(v)}>
+            ).map(([v, label, icon, tint]) => (
+              <button key={v} type="button" className="option" aria-pressed={blood === v} onClick={() => setBlood(blood === v ? null : v)}>
+                <span className={`opt-icon ${tint}`}>
+                  <Icon name={icon} />
+                </span>
                 {label}
               </button>
             ))}
           </div>
           {blood === "yes" && (
-            <p className="notice notice-high" style={{ marginTop: 12 }}>
-              Thanks for telling us. Please contact a healthcare provider soon to talk it through. If there&apos;s a lot of blood or you feel faint or
-              dizzy, get urgent care.
+            <p className="notice notice-high" style={{ margin: 0 }}>
+              Thanks for telling us. Please contact a healthcare provider soon. If there&apos;s a lot of blood or you feel faint or dizzy, get urgent care.
             </p>
           )}
-        </fieldset>
-      </section>
+        </div>
+      )}
 
-      <section className="card log-section">
-        <fieldset>
-          <legend>How did you feel?</legend>
-          <p className="hint">Pick any that apply, or skip. Skipping means &ldquo;didn&apos;t say&rdquo;, not &ldquo;felt fine&rdquo;.</p>
+      {step === 2 && (
+        <div className="screen stack" key="s2">
+          <div>
+            <h1 className="step-title">How did you feel?</h1>
+            <p className="muted small" style={{ margin: "6px 0 0" }}>
+              Pick any, or skip. Skipping means &ldquo;didn&apos;t say&rdquo;.
+            </p>
+          </div>
           <div className="chips">
-            <button type="button" className="chip none" aria-pressed={symptoms !== null && symptoms.length === 0} onClick={() => setSymptoms(symptoms && symptoms.length === 0 ? null : [])}>
-              Felt fine
+            <button type="button" className="chip positive" aria-pressed={symptoms !== null && symptoms.length === 0} onClick={() => setSymptoms(symptoms && symptoms.length === 0 ? null : [])}>
+              <Icon name="smile" size={16} /> Felt fine
             </button>
             {SYMPTOMS.map((s) => (
               <button key={s.id} type="button" className="chip" aria-pressed={!!symptoms?.includes(s.id)} onClick={() => setSymptoms(toggle(symptoms, s.id))}>
@@ -323,44 +349,85 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
               </button>
             ))}
           </div>
-        </fieldset>
-      </section>
+        </div>
+      )}
 
-      <section className="card log-section">
-        <fieldset>
-          <legend>Anything else going on?</legend>
-          <p className="hint">Context helps spot patterns. It doesn&apos;t mean one thing caused another.</p>
-          <div className="chips">
-            {CONTEXT_TAGS.map((c) => (
-              <button key={c.id} type="button" className="chip" aria-pressed={!!context?.includes(c.id)} onClick={() => setContext(toggle(context, c.id))}>
-                {c.label}
-              </button>
-            ))}
+      {step === 3 && (
+        <div className="screen stack-lg" key="s3">
+          <div>
+            <h1 className="step-title">Anything else?</h1>
+            <p className="muted small" style={{ margin: "6px 0 0" }}>
+              All optional. Context helps spot patterns.
+            </p>
           </div>
-          <div className="field" style={{ marginTop: 14 }}>
-            <label htmlFor="notes">
-              Notes <span className="hint">(optional, visible to anyone you share with)</span>
+          <fieldset className="stack-sm">
+            <legend className="label">When</legend>
+            <div className="segmented" role="group" aria-label="When did it happen">
+              <button type="button" aria-pressed={when === "now"} onClick={() => setWhen("now")}>
+                Just now
+              </button>
+              <button type="button" aria-pressed={when === "earlier"} onClick={() => setWhen("earlier")}>
+                Earlier
+              </button>
+            </div>
+            {when === "earlier" && (
+              <div className="field">
+                <label htmlFor="when">Date and time</label>
+                <input id="when" type="datetime-local" value={earlier} max={nowInput} onChange={(e) => setEarlier(e.target.value)} required />
+              </div>
+            )}
+          </fieldset>
+          <fieldset className="stack-sm">
+            <legend className="label">Going on lately</legend>
+            <div className="chips">
+              {CONTEXT_TAGS.map((c) => (
+                <button key={c.id} type="button" className="chip" aria-pressed={!!context?.includes(c.id)} onClick={() => setContext(toggle(context, c.id))}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <div className="field">
+            <label htmlFor="notes" className="label">
+              Notes <span className="hint">(visible to anyone you share with)</span>
             </label>
             <textarea id="notes" maxLength={1000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. tummy grumbled after lunch" />
           </div>
-        </fieldset>
-      </section>
+          <div className="card flat tint-butter row" style={{ gap: 12, border: 0 }}>
+            {type ? <BristolArt type={type} size={44} /> : <Mascot mood="think" size={40} bob={false} />}
+            <div className="small">
+              <div className="bold">{type ? `Type ${type}: ${bristolInfo(type)?.nickname}` : "No type picked (that's okay)"}</div>
+              <div className="muted tiny">
+                {[blood === "yes" ? "Red/black colour" : blood === "unsure" ? "Colour unsure" : blood === "no" ? "No red/black" : null, symptoms === null ? null : symptoms.length ? `${symptoms.length} symptom${symptoms.length > 1 ? "s" : ""}` : "Felt fine"]
+                  .filter(Boolean)
+                  .join(" · ") || "Nothing else added"}
+              </div>
+            </div>
+          </div>
+          {error && (
+            <p className="form-error" role="alert" style={{ margin: 0 }}>
+              {error}
+            </p>
+          )}
+        </div>
+      )}
 
-      <div className="card butter log-section" style={{ position: "sticky", bottom: 12, zIndex: 5 }}>
-        {error && (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
+      <div className="wizard-bar">
+        {step > 0 && (
+          <button type="button" className="btn btn-secondary btn-lg" onClick={() => go(step - 1)} aria-label="Previous step">
+            <Icon name="back" />
+          </button>
         )}
-        <div className="row between">
-          <span className="hint" style={{ color: "var(--ink)" }}>
-            {type ? `Type ${type}: ${bristolInfo(type)?.nickname}` : "No type picked (that's okay)"}
-          </span>
-          <button type="submit" className="btn btn-primary btn-big" disabled={saving || ai.kind === "busy"}>
+        {last ? (
+          <button type="submit" className="btn btn-primary btn-lg grow" disabled={saving || ai.kind === "busy"}>
             {saving && <span className="spinner" aria-hidden />}
             Save to my diary
           </button>
-        </div>
+        ) : (
+          <button type="submit" className="btn btn-primary btn-lg grow" disabled={ai.kind === "busy" && step === 0}>
+            {answered ? "Next" : "Skip"} <Icon name="arrow" />
+          </button>
+        )}
       </div>
     </form>
   );

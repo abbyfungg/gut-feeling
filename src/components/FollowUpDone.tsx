@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Icon } from "./Icon";
 
 export function FollowUpDone({ reviewId }: { reviewId: string }) {
   const router = useRouter();
@@ -9,7 +10,7 @@ export function FollowUpDone({ reviewId }: { reviewId: string }) {
   return (
     <span>
       <button
-        className="btn btn-soft btn-sm"
+        className="btn btn-secondary btn-sm"
         disabled={busy}
         onClick={async () => {
           setBusy(true);
@@ -21,11 +22,11 @@ export function FollowUpDone({ reviewId }: { reviewId: string }) {
           }
         }}
       >
-        {busy && <span className="spinner" aria-hidden />}
+        {busy ? <span className="spinner" aria-hidden /> : <Icon name="check" size={16} />}
         Mark follow-up done
       </button>
       {error && (
-        <span className="hint" role="alert">
+        <span className="tiny" role="alert" style={{ color: "var(--high-ink)" }}>
           {" "}
           Didn&apos;t save.
         </span>

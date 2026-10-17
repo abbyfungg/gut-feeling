@@ -2,6 +2,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { REVIEW_DECISIONS, type ReviewDecision } from "@/lib/domain";
+import { Icon } from "./Icon";
 
 /** Practitioner records a decision. Suggested follow-up text is a draft they must accept or edit. */
 export function ReviewForm({ patientId, flagKey, suggestion, onDone }: { patientId: string; flagKey: string; suggestion: string; onDone?: () => void }) {
@@ -58,21 +59,27 @@ export function ReviewForm({ patientId, flagKey, suggestion, onDone }: { patient
           {suggestion && followUp !== suggestion && (
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
+              className="btn btn-secondary btn-sm"
+              style={{ marginTop: 8 }}
               onClick={() => {
                 setFollowUp(suggestion);
                 setSource("rule_template");
               }}
             >
+              <Icon name="clipboard" size={16} />
               Use suggested follow-up
             </button>
           )}
-          {source === "rule_template" && <p className="hint">Suggested from the rule template. Edit it to fit your judgement and protocol.</p>}
+          {source === "rule_template" && (
+            <p className="row tiny faint" style={{ gap: 6, marginTop: 6 }}>
+              <span className="pill pill-info">Rule template</span> Edit to fit your judgement.
+            </p>
+          )}
         </div>
       )}
       <div className="field">
         <label htmlFor={`n-${id}`}>
-          Note <span className="hint">(optional)</span>
+          Note <span className="faint" style={{ fontWeight: 500 }}>(optional)</span>
         </label>
         <textarea id={`n-${id}`} value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} style={{ minHeight: 70 }} placeholder="What you checked or decided" />
       </div>
@@ -82,8 +89,8 @@ export function ReviewForm({ patientId, flagKey, suggestion, onDone }: { patient
         </p>
       )}
       <div>
-        <button className="btn btn-green" type="submit" disabled={busy}>
-          {busy && <span className="spinner" aria-hidden />}
+        <button className="btn btn-success" type="submit" disabled={busy}>
+          {busy ? <span className="spinner" aria-hidden /> : <Icon name="check" size={18} />}
           Save review
         </button>
       </div>

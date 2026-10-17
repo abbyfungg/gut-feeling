@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { AppBar } from "@/components/AppBar";
+import { BristolArt } from "@/components/BristolArt";
 import { Icon } from "@/components/Icon";
 import { Mascot } from "@/components/Mascot";
 import { PrintButton } from "@/components/PrintButton";
@@ -28,94 +29,136 @@ export default async function Visit() {
   const notes = list.filter((e) => e.notes);
   const flags = o.flags.filter((f) => localDay(f.windowEnd, tz) >= start);
 
-  return (
-    <main id="main">
-      <div className="container narrow stack-lg">
-        <div className="row between no-print">
-          <Link href="/me" className="btn btn-ghost btn-sm">
-            <Icon name="back" size={16} /> Back
-          </Link>
-          <PrintButton />
-        </div>
-        <div className="row" style={{ gap: 16 }}>
-          <Mascot mood="happy" size={70} bob={false} />
-          <div>
-            <h1 style={{ marginBottom: 2 }}>Visit notes for {user.name}</h1>
-            <p className="muted" style={{ margin: 0 }}>
-              {formatDayLabel(start)} to {formatDayLabel(today)} · from my Gut Feeling diary (self-reported)
-              {user.isSynthetic ? " · fictional demo data" : ""}
-            </p>
-          </div>
-        </div>
+  const stats = [
+    { v: mv.length, l: "logs", tint: "tint-butter" },
+    { v: `${days.size}/14`, l: "days logged", tint: "tint-sky" },
+    { v: list.filter((e) => e.kind === "no_movement").length, l: "confirmed none", tint: "tint-lavender" },
+    { v: list.filter((e) => e.bloodReport === "yes").length, l: "red/black reports", tint: "tint-blush" },
+  ];
 
-        <section className="card">
-          <h2>At a glance</h2>
-          <ul>
-            <li>
-              {mv.length} movements logged, on {days.size} of 14 days. Days with no entry are unknown, not &ldquo;none&rdquo;.
-            </li>
-            <li>{list.filter((e) => e.kind === "no_movement").length} days confirmed with no movement.</li>
-            <li>
-              Shapes:{" "}
-              {typed.length
-                ? BRISTOL.filter((b) => typed.some((e) => e.bristolType === b.type))
-                    .map((b) => `type ${b.type} × ${typed.filter((e) => e.bristolType === b.type).length}`)
-                    .join(", ")
-                : "none recorded"}
-              .
-            </li>
-            <li>
-              Symptoms:{" "}
-              {sym.size
-                ? [...sym.entries()].map(([s, n]) => `${symptomLabel(s).toLowerCase()} × ${n}`).join(", ")
-                : "none reported"}{" "}
-              (answered on {list.filter((e) => e.symptoms !== null).length} entries).
-            </li>
-            <li>Red or black colour reported: {list.filter((e) => e.bloodReport === "yes").length} times; unsure: {list.filter((e) => e.bloodReport === "unsure").length}.</li>
-          </ul>
+  return (
+    <main id="main" className="screen">
+      <AppBar title="Visit notes" back="/me/sharing" right={<PrintButton />} />
+      <div className="stack-lg">
+        <section className="hero-card" aria-label="Summary for">
+          <div className="hero-body stack-sm" style={{ maxWidth: "70%" }}>
+            <span className="eyebrow">Two-week summary</span>
+            <h2 className="hero-title" style={{ fontSize: "var(--t-xl)" }}>
+              {user.name}
+            </h2>
+            <p className="small" style={{ margin: 0, color: "var(--ink-2)" }}>
+              {formatDayLabel(start)} to {formatDayLabel(today)}
+            </p>
+            <span className="glass-chip" style={{ alignSelf: "flex-start" }}>
+              Self-reported{user.isSynthetic ? " · fictional demo data" : ""}
+            </span>
+          </div>
+          <div className="hero-mascot">
+            <Mascot mood="happy" size={110} bob={false} />
+          </div>
+        </section>
+
+        <section className="grid-2" aria-label="At a glance">
+          {stats.map((s) => (
+            <div key={s.l} className={`card stat ${s.tint}`} style={{ border: 0, padding: 14 }}>
+              <span className="stat-value">{s.v}</span>
+              <span className="stat-label">{s.l}</span>
+            </div>
+          ))}
+        </section>
+        <p className="tiny muted" style={{ margin: "-10px 4px 0" }}>
+          Days with no log are unknown, not &ldquo;none&rdquo;. Colour unsure: {list.filter((e) => e.bloodReport === "unsure").length}.
+        </p>
+
+        <section className="card stack-sm" aria-labelledby="v-shapes">
+          <h2 id="v-shapes" style={{ fontSize: "var(--t-lg)" }}>
+            Shapes
+          </h2>
+          {typed.length ? (
+            <div className="row wrap" style={{ gap: 8 }}>
+              {BRISTOL.filter((b) => typed.some((e) => e.bristolType === b.type)).map((b) => (
+                <span key={b.type} className="pill" style={{ height: "auto", padding: "6px 10px" }}>
+                  <BristolArt type={b.type} size={28} /> Type {b.type} <strong>×{typed.filter((e) => e.bristolType === b.type).length}</strong>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="small muted" style={{ margin: 0 }}>
+              None recorded.
+            </p>
+          )}
+          <h3 style={{ fontSize: "var(--t-md)", marginTop: 8 }}>Symptoms</h3>
+          {sym.size ? (
+            <div className="chips">
+              {[...sym.entries()].map(([s, n]) => (
+                <span key={s} className="pill">
+                  {symptomLabel(s)} <strong>×{n}</strong>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="small muted" style={{ margin: 0 }}>
+              None reported.
+            </p>
+          )}
+          <p className="tiny muted" style={{ margin: 0 }}>
+            Answered on {list.filter((e) => e.symptoms !== null).length} logs.
+          </p>
         </section>
 
         {flags.length > 0 && (
-          <section className="card">
-            <h2>Things Gut Feeling noticed</h2>
-            <ul>
+          <section className="stack-sm" aria-labelledby="v-flags">
+            <div className="section-head">
+              <h2 id="v-flags">Things Gut Feeling noticed</h2>
+            </div>
+            <div className="list">
               {flags.map((f) => (
-                <li key={f.key} style={{ marginBottom: 6 }}>
-                  <strong>{f.title}.</strong> {f.whatChanged}
-                </li>
+                <div key={f.key} className="list-row">
+                  <div className="row-main" style={{ cursor: "default", alignItems: "flex-start" }}>
+                    <span className={`insight-icon ${f.severity}`} aria-hidden style={{ width: 36, height: 36, borderRadius: 12 }}>
+                      <Icon name="alert" size={18} />
+                    </span>
+                    <div className="grow">
+                      <div className="row-title">{f.title}</div>
+                      <div className="small muted">{f.whatChanged}</div>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </ul>
-            <p className="hint" style={{ margin: 0 }}>
-              From simple rules on my own entries. Not a diagnosis.
+            </div>
+            <p className="tiny muted" style={{ margin: "0 4px" }}>
+              From simple rules on my own logs. Not a diagnosis.
             </p>
           </section>
         )}
 
         {(ctx.length > 0 || notes.length > 0) && (
-          <section className="card">
-            <h2>Context and notes</h2>
-            <ul>
-              {ctx.map((e) => (
-                <li key={`c-${e.id}`}>
-                  {formatDateTime(e.occurredAt, tz)}: {e.context!.map(contextLabel).join(", ")}
-                </li>
-              ))}
-              {notes.map((e) => (
-                <li key={`n-${e.id}`}>
-                  {formatDateTime(e.occurredAt, tz)}: &ldquo;{e.notes}&rdquo;
-                </li>
-              ))}
-            </ul>
+          <section className="card stack-sm" aria-labelledby="v-notes">
+            <h2 id="v-notes" style={{ fontSize: "var(--t-lg)" }}>
+              Context and notes
+            </h2>
+            {ctx.map((e) => (
+              <div key={`c-${e.id}`} className="small">
+                <span className="muted">{formatDateTime(e.occurredAt, tz)}</span> · {e.context!.map(contextLabel).join(", ")}
+              </div>
+            ))}
+            {notes.map((e) => (
+              <div key={`n-${e.id}`} className="small">
+                <span className="muted">{formatDateTime(e.occurredAt, tz)}</span> <span className="quote">&ldquo;{e.notes}&rdquo;</span>
+              </div>
+            ))}
           </section>
         )}
 
-        <section className="card butter">
-          <h2>Questions I might ask</h2>
-          <ul style={{ marginBottom: 0 }}>
-            <li>Is this pattern something to keep an eye on, or something to act on?</li>
-            <li>Could any of my medicines or recent changes be relevant?</li>
-            <li>What should make me call sooner?</li>
-          </ul>
+        <section className="card tint-butter stack-sm" style={{ border: 0 }} aria-labelledby="v-q">
+          <h2 id="v-q" style={{ fontSize: "var(--t-lg)" }}>
+            Questions to ask
+          </h2>
+          {["Is this pattern worth watching, or acting on?", "Could my medicines or recent changes be relevant?", "What should make me call sooner?"].map((q) => (
+            <div key={q} className="row top small" style={{ gap: 8 }}>
+              <Icon name="chevron" size={16} /> {q}
+            </div>
+          ))}
         </section>
       </div>
     </main>

@@ -10,8 +10,8 @@ export function DeleteEntryButton({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   if (!confirming)
     return (
-      <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)} aria-label="Delete this entry">
-        <Icon name="trash" size={16} />
+      <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)} aria-label="Delete this entry" style={{ alignSelf: "flex-start" }}>
+        <Icon name="trash" size={16} /> Delete
       </button>
     );
   return (
