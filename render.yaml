@@ -1,0 +1,17 @@
+# Render Blueprint: one free web service. Data lives on the instance's disk and resets
+# (back to fresh demo data) whenever the free instance restarts or sleeps.
+services:
+  - type: web
+    name: gut-feeling
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: SEED_DEMO_DATA
+        value: "true"
+      - key: GEMINI_API_KEY
+        sync: false

@@ -4,7 +4,16 @@ The app is one Node server plus one SQLite file. Any host works if it gives you 
 
 Nothing has been deployed yet. Each option below needs your own account and login.
 
-## Option A: Render (simplest; paid)
+## Quickest: Render free tier (good for judging)
+
+1. Go to https://render.com and sign up with GitHub.
+2. **New → Blueprint**, pick `abbyfungg/gut-feeling`. Render reads `render.yaml`.
+3. When asked, paste your `GEMINI_API_KEY` (or leave it blank for manual mode). Click **Apply**.
+4. Wait for the build (a few minutes). Your link is `https://gut-feeling-xxxx.onrender.com`.
+
+Free instances sleep after ~15 minutes idle; the first visit after that takes about a minute, and data resets to fresh demo data. Open the link a minute before you demo.
+
+## Option A: Render with a persistent disk (paid)
 
 1. Push this repo to GitHub (done: `abbyfungg/gut-feeling`).
 2. In Render, create a **Web Service** from the repo, runtime **Docker** (uses the `Dockerfile`).
