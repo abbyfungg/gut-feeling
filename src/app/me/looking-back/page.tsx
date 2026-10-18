@@ -25,12 +25,18 @@ export default async function LookingBack() {
       <div className="stack-6">
         <section className="stack-2">
           <span className="badge badge-demo" style={{ width: "fit-content" }}>
-            Replay · fictional demo story
+            {m.live ? "Right now · fictional demo story" : "Replay · fictional demo story"}
           </span>
-          <p className="small">
-            This is what Gut Feeling showed you on <strong>{formatDateTime(m.asOf.toISOString(), tz)}</strong>, built only from the entries you had logged by then. Nobody had
-            reviewed anything yet.
-          </p>
+          {m.live ? (
+            <p className="small">
+              This is what Gut Feeling shows you now, from your own entries. Your care team can see the same entries, and nobody has reviewed them yet.
+            </p>
+          ) : (
+            <p className="small">
+              This is what Gut Feeling showed you on <strong>{formatDateTime(m.asOf.toISOString(), tz)}</strong>, built only from the entries you had logged by then. Nobody had
+              reviewed anything yet.
+            </p>
+          )}
         </section>
 
         <section className="card stack-3" aria-labelledby="two-weeks">

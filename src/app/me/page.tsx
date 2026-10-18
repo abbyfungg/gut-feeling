@@ -160,7 +160,7 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           </>
         )}
 
-        {user.email === DEMO_ACCOUNTS.story && (
+        {user.email === DEMO_ACCOUNTS.story && !showNudge && (
           <Link href="/me/looking-back" className="card row" style={{ textDecoration: "none", color: "inherit", gap: "var(--s-3)" }}>
             <span className="item-icon" style={{ background: "var(--primary)", color: "var(--on-primary)" }}>
               <Icon name="heart" size={18} />

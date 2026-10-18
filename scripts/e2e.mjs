@@ -223,16 +223,29 @@ const stamp = `e2e note ${Date.now()}`;
   await page.getByLabel("Password").fill("everybodypoops");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await page.waitForURL("**/me");
-  check((await page.locator(".nudge").count()) === 0, "no warning for Walter now that he's back to normal");
-  await page.getByRole("link", { name: /Caught early/ }).click();
-  await page.waitForURL("**/me/looking-back");
-  check(await page.getByText("Womby noticed a change").isVisible(), "Walter's replay shows Womby's warning");
+  check(await page.getByText("Womby noticed a change").isVisible(), "Walter's own home shows Womby's warning right now");
+  await shot(page, "49-walter-home");
+  await page.goto(BASE + "/me/looking-back");
+  check(await page.getByText("Womby noticed a change").isVisible(), "Walter's looking-back page shows Womby's warning");
   check(await page.getByText("Nothing for 3 days").isVisible(), "warning names the days with nothing");
   check(await page.getByText("Your stools got harder").isVisible(), "warning names the harder stools");
   check(await page.getByText(/Tell Priya how you're feeling/).isVisible(), "warning prompts him to tell his care team");
   check((await page.locator(".pattern-chart svg").count()) === 1, "replay shows his two-week pattern chart");
   await shot(page, "50-walter-replay");
   await ctx.close();
+
+  const n = await newPage();
+  await n.page.goto(BASE + "/signin");
+  await n.page.getByLabel("Email").fill("priya@demo.gutfeeling.health");
+  await n.page.getByLabel("Password").fill("everybodypoops");
+  await n.page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await n.page.waitForURL("**/care");
+  await n.page.goto(`${BASE}/care/patients/${idOf("walter@demo.gutfeeling.health")}`);
+  check((await n.page.getByText(/no movement|nothing logged|Confirmed no movement/i).count()) > 0, "Priya sees Walter's open no-movement flag");
+  check((await n.page.getByRole("button", { name: /Why was this flagged/ }).count()) > 0, "Walter's flag has the Ask Gemini 'Why was this flagged?' card");
+  check((await n.page.getByText(/nobody has reviewed it yet/).count()) > 0, "Walter is shown as not reviewed yet");
+  await shot(n.page, "51-priya-walter");
+  await n.ctx.close();
 }
 
 // ---- Water bottle: Nora's flag, simulator, bottle pairing, care view ----

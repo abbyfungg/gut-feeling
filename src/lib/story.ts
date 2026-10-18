@@ -12,8 +12,10 @@ import { DEMO_ACCOUNTS } from "./seed";
 
 export interface StoryMoment {
   patient: User;
-  /** The evening before the nurse's call: what Walter's own app showed him then. */
+  /** The moment shown: now, while his flags wait unreviewed (or, if a review exists, the evening before it). */
   asOf: Date;
+  /** True when nobody has reviewed Walter yet, so this is what both sides see right now. */
+  live: boolean;
   entries: Entry[];
   pattern: PatternSummary;
   /** Rule flags as they stood at that moment (the ones the care team saw the next morning). */
@@ -23,8 +25,8 @@ export interface StoryMoment {
 }
 
 /**
- * Rebuilds the "before the flag" moment of the caught-early demo from the synthetic data itself:
- * the moment is anchored 12 hours 40 minutes before the nurse's first review (8:30 p.m. the night before).
+ * The "before the call" moment of the caught-early demo, built from the synthetic data itself. While nobody has
+ * reviewed Walter it is simply now. If a review exists, it is 12 h 40 min before it (8:30 p.m. the night before).
  * Entries logged after that moment are left out, so nothing is shown that Walter couldn't have seen then.
  */
 export function getStoryMoment(viewer?: User): StoryMoment | null {
@@ -42,21 +44,20 @@ export function getStoryMoment(viewer?: User): StoryMoment | null {
        WHERE r.patient_id = ? AND r.flag_rule = 'no_movement' ORDER BY r.created_at ASC LIMIT 1`,
     )
     .get(patient.id) as { created_at: string; note: string; follow_up: string; practitioner: string } | undefined;
-  if (!rv) return null;
-
   const tz = getConfig().timezone;
-  const asOf = new Date(new Date(rv.created_at).getTime() - (12 * 60 + 40) * 60_000);
+  const asOf = rv ? new Date(new Date(rv.created_at).getTime() - (12 * 60 + 40) * 60_000) : new Date();
   const all = listEntries(patient, patient.id);
   const entries = all.filter((e) => new Date(e.occurredAt).getTime() <= asOf.getTime());
   return {
     patient,
     asOf,
+    live: !rv,
     entries,
     pattern: describePattern(entries, asOf, tz),
     flags: evaluateRules(entries, asOf, tz).flags,
     careTeam: listSharing(patient)
       .filter((s) => s.status === "active")
       .map((s) => s.practitioner.name),
-    review: { practitionerName: rv.practitioner, createdAt: rv.created_at, note: rv.note.replace(/\s*\(Synthetic demo record\.\)/, ""), followUp: rv.follow_up },
+    review: rv ? { practitionerName: rv.practitioner, createdAt: rv.created_at, note: rv.note.replace(/\s*\(Synthetic demo record\.\)/, ""), followUp: rv.follow_up } : null,
   };
 }

@@ -89,11 +89,13 @@ export default async function Story() {
             <section className="mk-views" aria-labelledby="two-views">
               <div className="stack-2">
                 <span className="badge badge-demo" style={{ width: "fit-content" }}>
-                  Rebuilt from Walter&apos;s synthetic entries
+                  {m.live ? "Live from the demo app · synthetic data" : "Rebuilt from Walter's synthetic entries"}
                 </span>
                 <h2 id="two-views">Two views of the same week</h2>
                 <p className="muted">
-                  Left: what Walter&apos;s phone showed him on the evening of day 7, using only the entries logged by then. Right: what Priya saw in her queue the next morning.
+                  {m.live
+                    ? "Left: what Walter's phone shows him right now, after three quiet days. Right: what Priya sees in her queue this morning, before she calls. Both are the real app screens, from the same entries."
+                    : "Left: what Walter's phone showed him on the evening of day 7, using only the entries logged by then. Right: what Priya saw in her queue the next morning."}
                 </p>
               </div>
               <div className="mk-views-grid">
@@ -119,7 +121,7 @@ export default async function Story() {
                     <span className="badge badge-clinician">
                       <Icon name="clipboard" /> Priya&apos;s view
                     </span>
-                    <span className="small muted">Next morning, review queue</span>
+                    <span className="small muted">{m.live ? "This morning, review queue · not reviewed yet" : "Next morning, review queue"}</span>
                   </div>
                   <div className="mk-queue stack-3">
                     {m.flags.map((f) => (
@@ -205,7 +207,7 @@ export default async function Story() {
               <div className="stack-3">
                 <h2 id="see-it">See it in the app</h2>
                 <p className="muted" style={{ maxWidth: "46ch" }}>
-                  Walter&apos;s whole diary, the flags and Priya&apos;s review are in the demo. Open it from either side.
+                  Walter&apos;s diary and his open flags are in the demo, waiting in Priya&apos;s queue. Open it from either side: sign in as Walter to see his warning, or as Priya to review him.
                 </p>
                 <Link href="/" className="link-btn small">
                   <Icon name="back" size={14} /> Back to home
