@@ -1,3 +1,4 @@
+import { compareFlags } from "@/lib/rules/engine";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { CareEmpty, CareTopbar, FlagStatusText, Severity, SourceBadge } from "@/components/care/bits";
@@ -35,7 +36,7 @@ export default async function CareHome({ searchParams }: { searchParams: Promise
 
   const queue: Item[] = caseload
     .flatMap((c) => c.outstanding.map((f) => ({ ...f, patientId: c.patient.id, patientName: c.patient.name })))
-    .sort((a, b) => (a.severity === b.severity ? b.windowEnd.localeCompare(a.windowEnd) : a.severity === "high" ? -1 : 1));
+    .sort(compareFlags);
   const reviewed: Item[] = caseload
     .flatMap((c) => c.allFlags.filter((f) => f.status === "reviewed").map((f) => ({ ...f, patientId: c.patient.id, patientName: c.patient.name })))
     .sort((a, b) => (b.latestReview?.createdAt ?? "").localeCompare(a.latestReview?.createdAt ?? ""));
@@ -77,7 +78,7 @@ export default async function CareHome({ searchParams }: { searchParams: Promise
                 <h2 id="queue-h">
                   Flags needing review <span className="h-count">{queue.length}</span>
                 </h2>
-                <span className="meta">High severity first, then newest</span>
+                <span className="meta">Most urgent first: high severity, possible blockage at the top</span>
               </div>
               {queue.length === 0 ? (
                 <CareEmpty title="All caught up" pose="celebrate">

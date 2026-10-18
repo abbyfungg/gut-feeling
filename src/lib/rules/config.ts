@@ -9,7 +9,8 @@ export interface RuleConfig {
   lookbackDays: number;
   looseStools: { enabled: boolean; minCount: number; windowHours: number; minType: number };
   hardStools: { enabled: boolean; minCount: number; windowDays: number; maxType: number };
-  noMovement: { enabled: boolean; minConsecutiveDays: number };
+  /** A run escalates to high when any of `escalateSymptoms` was reported during it or in the `escalateLeadDays` before it. */
+  noMovement: { enabled: boolean; minConsecutiveDays: number; escalateSymptoms: string[]; escalateLeadDays: number };
   reportedBlood: { enabled: boolean };
   severeSymptoms: { enabled: boolean; symptoms: string[] };
   baselineShift: {
@@ -31,7 +32,7 @@ export const DEFAULT_RULE_CONFIG: RuleConfig = {
   lookbackDays: 30,
   looseStools: { enabled: true, minCount: 3, windowHours: 24, minType: 6 },
   hardStools: { enabled: true, minCount: 3, windowDays: 7, maxType: 2 },
-  noMovement: { enabled: true, minConsecutiveDays: 3 },
+  noMovement: { enabled: true, minConsecutiveDays: 3, escalateSymptoms: ["nausea", "severe_pain"], escalateLeadDays: 4 },
   reportedBlood: { enabled: true },
   severeSymptoms: { enabled: true, symptoms: ["severe_pain", "fever"] },
   baselineShift: {

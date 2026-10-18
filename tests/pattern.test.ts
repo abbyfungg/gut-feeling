@@ -7,6 +7,7 @@ import { describePattern, callName } from "@/lib/pattern";
 import { getCaseload, listEntries } from "@/lib/records";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, seedDemoData } from "@/lib/seed";
 import { getStoryMoment } from "@/lib/story";
+import { compareFlags } from "@/lib/rules/engine";
 
 describe("Walter, live in Priya's queue before her call", () => {
   resetDbForTests();
@@ -26,6 +27,19 @@ describe("Walter, live in Priya's queue before her call", () => {
     const row = getCaseload(priya).find((r) => r.patient.name === "Walter Brooks")!;
     expect(row).toBeTruthy();
     expect(row.outstanding.map((f) => f.rule)).toEqual(expect.arrayContaining(["no_movement", "hard_stools"]));
+  });
+
+  it("is the first, high-severity item in Priya's review queue", () => {
+    const priya = authenticate(DEMO_ACCOUNTS.practitioner, DEMO_PASSWORD)!;
+    const queue = getCaseload(priya)
+      .flatMap((c) => c.outstanding.map((f) => ({ ...f, name: c.patient.name })))
+      .sort(compareFlags);
+    expect(queue[0].name).toBe("Walter Brooks");
+    expect(queue[0].rule).toBe("no_movement");
+    expect(queue[0].severity).toBe("high");
+    expect(queue[0].whatChanged).toMatch(/Nausea reported/);
+    // Margaret has the same gap without nausea, so hers stays medium.
+    expect(queue.find((f) => f.name === "Margaret Kowalski" && f.rule === "no_movement")?.severity).toBe("medium");
   });
 
   it("names exactly what changed, citing real entries", () => {

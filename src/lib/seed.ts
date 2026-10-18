@@ -37,7 +37,10 @@ export function ensureSeeded() {
   // unreviewed one so he sits in Priya's queue. Only touches the synthetic demo account.
   const walter = has(DEMO_ACCOUNTS.story);
   if (priya && walter) {
-    const old = getDb().prepare("SELECT 1 FROM reviews WHERE patient_id = ? UNION SELECT 1 FROM entries WHERE patient_id = ? AND notes LIKE 'Saw the GP%'").get(walter.id, walter.id);
+    // Also replaces the version from before nausea was added, so he ranks first in her queue.
+    const old =
+      getDb().prepare("SELECT 1 FROM reviews WHERE patient_id = ? UNION SELECT 1 FROM entries WHERE patient_id = ? AND notes LIKE 'Saw the GP%'").get(walter.id, walter.id) ||
+      !getDb().prepare("SELECT 1 FROM entries WHERE patient_id = ? AND symptoms LIKE '%nausea%'").get(walter.id);
     if (old) transaction(() => {
       getDb().prepare("DELETE FROM users WHERE id = ? AND email = ?").run(walter.id, DEMO_ACCOUNTS.story);
       seedStoryPatient(new Date(), priya.id);
@@ -318,7 +321,7 @@ export function seedStoryPatient(now: Date, priyaId: string) {
     { daysAgo: 7, hour: 9, type: 3, context: ["medication_change"], notes: "Started a new pain medicine after his hip appointment (logged by son)." },
     { daysAgo: 6, hour: 10, type: 2, symptoms: ["straining"] },
     { daysAgo: 5, hour: 9, minute: 40, type: 2, symptoms: ["straining", "discomfort"], context: ["low_fluids"], notes: "Not drinking much, says he isn't thirsty." },
-    { daysAgo: 4, hour: 11, type: 1, symptoms: ["straining", "discomfort", "bloating"] },
+    { daysAgo: 4, hour: 11, type: 1, symptoms: ["straining", "discomfort", "bloating", "nausea"], notes: "Felt a bit sick and skipped dinner." },
     { daysAgo: 3, hour: 20, kind: "no_movement" },
     { daysAgo: 2, hour: 20, kind: "no_movement", notes: "Says his belly feels hard and full." },
     { daysAgo: 1, hour: 20, kind: "no_movement" },

@@ -112,22 +112,28 @@ export function evaluateRules(
         const first = evidence[0];
         const last = evidence[evidence.length - 1];
         const lastMovement = [...movements].reverse().find((m) => m.occurredAt < first.occurredAt);
+        // Stopped going plus nausea or severe pain can point to a blockage, so it goes to the top of the queue.
+        const leadFrom = new Date(new Date(first.occurredAt).getTime() - config.noMovement.escalateLeadDays * DAY).toISOString();
+        const warning = entries.filter(
+          (e) => e.occurredAt >= leadFrom && e.occurredAt <= last.occurredAt && (e.symptoms ?? []).some((s) => config.noMovement.escalateSymptoms.includes(s)),
+        );
+        const warningSymptoms = [...new Set(warning.flatMap((e) => (e.symptoms ?? []).filter((s) => config.noMovement.escalateSymptoms.includes(s))))];
         flags.push({
           key: `no_movement:${first.id}`,
           rule: "no_movement",
-          severity: "medium",
+          severity: warning.length ? "high" : "medium",
           title: "No bowel movement on consecutive confirmed days",
           patientTitle: "A few days without going",
-          whatChanged: `"No movement" confirmed on ${run.length} consecutive days (${formatDayLabel(run[0])} to ${formatDayLabel(run[run.length - 1])}).${lastMovement ? ` Last logged movement: ${fmt(lastMovement.occurredAt)}.` : ""}`,
+          whatChanged: `"No movement" confirmed on ${run.length} consecutive days (${formatDayLabel(run[0])} to ${formatDayLabel(run[run.length - 1])}).${lastMovement ? ` Last logged movement: ${fmt(lastMovement.occurredAt)}.` : ""}${warning.length ? ` ${warningSymptoms.map(symptomLabel).join(" and ")} reported on ${fmt(warning[warning.length - 1].occurredAt)}.` : ""}`,
           windowStart: first.occurredAt,
           windowEnd: last.occurredAt,
-          evidenceIds: evidence.map((e) => e.id),
+          evidenceIds: [...warning.filter((e) => !evidence.includes(e)).map((e) => e.id), ...evidence.map((e) => e.id)],
           context: contextFor(first.occurredAt, last.occurredAt),
           patientMessage:
             "It's been a few days without a movement. That happens, but if you feel bloated, sore, sick, or this is unusual for you, let your care team know.",
           suggestedFollowUp: "Check in with the patient about abdominal discomfort, appetite and fluids. Follow your bowel-care protocol if one applies.",
           caveat: "Counts only days the person actively confirmed. Days with no log are treated as unknown, not as no movement.",
-          ruleDescription: `"No movement" confirmed on ≥ ${config.noMovement.minConsecutiveDays} consecutive days with no movement logged on those days.`,
+          ruleDescription: `"No movement" confirmed on ≥ ${config.noMovement.minConsecutiveDays} consecutive days with no movement logged on those days. High if ${config.noMovement.escalateSymptoms.map((x) => symptomLabel(x).toLowerCase()).join(" or ")} was reported during or in the ${config.noMovement.escalateLeadDays} days before.`,
         });
       }
       run = [];
@@ -316,7 +322,7 @@ export function evaluateRules(
   // Times formatted like "4:07 a.m." already end in a period.
   for (const f of flags) f.whatChanged = f.whatChanged.replace(/\.\./g, ".");
 
-  flags.sort((a, b) => (a.severity === b.severity ? b.windowEnd.localeCompare(a.windowEnd) : a.severity === "high" ? -1 : 1));
+  flags.sort(compareFlags);
   return { flags, notices };
 }
 
@@ -361,4 +367,17 @@ export function describeContext(notes: ContextNote[], timeZone: string): string 
   if (notes.length === 0) return null;
   const parts = notes.map((n) => `"${contextLabel(n.tag)}" (${formatDateTime(n.occurredAt, timeZone)})`);
   return `Noted around this time: ${parts.join(", ")}. Timing only; this does not show cause.`;
+}
+
+/** Among high flags, a possible blockage comes first, then reported blood, then loose stools. */
+const HIGH_RANK: Record<string, number> = { no_movement: 0, reported_blood: 1, loose_stools: 2 };
+
+/** Queue order: high before medium, then the most urgent kind of high flag, then newest first. */
+export function compareFlags(a: { severity: string; rule: string; windowEnd: string }, b: { severity: string; rule: string; windowEnd: string }): number {
+  if (a.severity !== b.severity) return a.severity === "high" ? -1 : 1;
+  if (a.severity === "high") {
+    const d = (HIGH_RANK[a.rule] ?? 9) - (HIGH_RANK[b.rule] ?? 9);
+    if (d) return d;
+  }
+  return b.windowEnd.localeCompare(a.windowEnd);
 }
