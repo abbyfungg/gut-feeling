@@ -3,7 +3,8 @@
   Board: Arduino UNO R4 WiFi
 
   What it does:
-    1. Lights the 4 corner LEDs of the red grid, so you know the display works.
+    1. Lights the 4 corner LEDs of the red grid and blinks the small L LED 3 times.
+       (If a Grove shield covers the grid, that's fine: the Serial Monitor is the real test.)
     2. Looks for the accelerometer and tells you which kind it found.
     3. Prints the tilt of the bottle 5 times a second.
 
@@ -74,12 +75,14 @@ float restX, restY, restZ;
 void setup() {
   Serial.begin(115200);
   delay(1500);
+  pinMode(LED_BUILTIN, OUTPUT);
   matrix.begin();
   Wire.begin();
 
-  Serial.println("LED test: the 4 corners of the red grid should light up.");
+  Serial.println("LED test: the 4 corners of the red grid light up (hidden if a shield covers it).");
   frame[0][0] = frame[0][11] = frame[7][0] = frame[7][11] = 1;
   matrix.renderBitmap(frame, 8, 12);
+  for (int i = 0; i < 3; i++) { digitalWrite(LED_BUILTIN, HIGH); delay(200); digitalWrite(LED_BUILTIN, LOW); delay(200); }
 
   Serial.println("I2C scan (devices found on SDA/SCL):");
   for (uint8_t a = 1; a < 127; a++) if (present(a)) { Serial.print("  found 0x"); Serial.println(a, HEX); }
@@ -89,7 +92,7 @@ void setup() {
   Serial.print("Accelerometer: ");
   Serial.println(names[accel]);
   if (accel == ACC_NONE) {
-    Serial.println("Check the Grove wires: black GND, red 5V, white SDA, yellow SCL. Then press the reset button.");
+    Serial.println("Check the Grove wires: black GND, red 5V, white SDA, yellow SCL. On a Grove shield, use a port labelled I2C and set its switch to 5V. Then press the reset button.");
     while (true) delay(1000);
   }
   Serial.println("Hold it still and upright for 1 second...");

@@ -6,6 +6,8 @@ You'll tape a small motion sensor (the accelerometer) to a water bottle. Each ti
 
 The bottle is built and counting sips. 🎉
 
+**Can't see the red LED grid because a Grove shield is stacked on top?** Either take the shield off and wire the accelerometer straight to the Arduino (recommended, see Step 2), or keep it and use the Serial Monitor and the app as your display. See **"Using a Grove shield instead"** in Step 2.
+
 - [x] **Step 1: Install the Arduino software**
 - [x] **Step 2: Wire it up**
 - [x] **Step 3: Upload `bottle_test.ino`**
@@ -78,6 +80,15 @@ Use the SDA/SCL pins on the **header**, not the small white Qwiic plug on the bo
 
 **Double-check before plugging in:** red is on 5V and black is on GND, never swapped. Swapped power wires are the one mistake that can damage a part.
 
+### Using a Grove shield instead
+
+If a Grove Base Shield (the board with lots of white Grove sockets) is stacked on the Arduino, it covers the red LED grid. You have two options:
+
+1. **Recommended: take the shield off.** Unplug USB, pull the shield straight up off the Arduino's headers, and wire the accelerometer's four loose pins straight in as in the table above. Now you can see the LED grid.
+2. **Keep the shield.** Plug the accelerometer's Grove cable into any of the 4 sockets labelled **I2C** (below the digital ports D2–D8). Set the shield's power switch to **5V**. Those I2C sockets connect to the Arduino's SDA/SCL (A4/A5), so the sketches work unchanged. You won't see the LED grid, so watch the **Serial Monitor** (and later the app's Water screen) instead. The small **L** LED on the Arduino also blinks once per sip, if you can see it past the shield.
+
+Don't use the A0–A3 or D2–D8 sockets for the accelerometer: they aren't I2C.
+
 ---
 
 ## Step 3: First test (about 15 min)
@@ -90,7 +101,7 @@ Use the SDA/SCL pins on the **header**, not the small white Qwiic plug on the bo
 
 You should get:
 
-- **The four corner LEDs light up.** That means the LED grid works.
+- **The four corner LEDs light up** and the small **L** LED blinks 3 times. (Covered by a shield? Skip this one; the lines below are the real test.)
 - A line like `found 0x19` and `Accelerometer: LIS3DHTR` (or ADXL345 / MMA7660, depending on which Grove model you have; all three work).
 - Then lines like `x:0.01 y:-0.02 z:1.00 tilt:2`. Tip the accelerometer slowly: **tilt** should climb from about 0 to about 90 when it's on its side.
 
@@ -118,11 +129,11 @@ If any of that doesn't happen, see **Troubleshooting** at the bottom before movi
    #define REMIND_MS     (60UL * 1000UL)
    ```
 4. Click **Upload**, open the Serial Monitor, and press **RESET** with the bottle standing upright and still.
-5. You'll see a water-drop on the LEDs, then `Ready. Drink away!` and a `0`.
+5. You'll see `Ready. Drink away!` in the Serial Monitor, a water drop then a `0` on the LED grid, and the **L** LED blinks twice.
 6. Pick up the bottle, tip it like you're drinking (about a second or more), and put it back down upright. You should get:
-   - the LED number goes up by 1,
+   - the LED grid number goes up by 1 and the **L** LED blinks once,
    - `Sip #1 … Estimated total: 30 ml` in the Serial Monitor.
-7. Leave it alone for the reminder time. The water drop flashes on the LEDs a few times, then the count comes back.
+7. Leave it alone for the reminder time. The Serial Monitor prints `Reminder: time for a sip of water.`, the **L** LED blinks 3 times, and the water drop flashes on the grid.
 
 ---
 
@@ -161,7 +172,8 @@ Without Wi-Fi it still counts sips, shows the count and flashes reminders. It ju
 | Serial Monitor shows gibberish | Set the speed to 115200 baud |
 | `Accelerometer: NOT FOUND` (or a big X on the LEDs), and the I2C scan shows nothing | White and yellow are probably swapped or loose. White → SDA, yellow → SCL. Check red is on 5V and black on GND. |
 | The scan finds something, but it says NOT FOUND | You may have a different accelerometer model. Send us the address the scan printed. |
-| Corner LEDs don't light up | Check Tools > Board says UNO R4 WiFi and upload again. |
+| Corner LEDs don't light up | A Grove shield on top hides them (see Step 2, "Using a Grove shield instead"). Otherwise check Tools > Board says UNO R4 WiFi and upload again. |
+| On a shield, `Accelerometer: NOT FOUND` | Use a socket labelled **I2C**, not A0–A3 or D2–D8, and set the shield's switch to **5V**. |
 | Small sips aren't counted | Lower `TILT_SIP` (e.g. 40) or `MIN_SIP_MS` (e.g. 400) in `water_bottle.ino` |
 | Sips count when I just pick the bottle up | Raise `TILT_SIP` (e.g. 60) or `MIN_SIP_MS` (e.g. 900) |
 | Laying the bottle down counts as a sip | Lower `MAX_SIP_MS` (e.g. 8000) |
@@ -180,4 +192,4 @@ Without Wi-Fi it still counts sips, shows the count and flashes reminders. It ju
 | 6. Connect to the app | 20–30 min |
 | 7. Go wireless (optional) | 10 min |
 
-Sources checked for the wiring: [Seeed Grove 3-axis accelerometer (LIS3DHTR) wiki](https://wiki.seeedstudio.com/Grove-3-Axis-Digital-Accelerometer-LIS3DHTR) (I2C address 0x19, 3–5V), [UNO R4 WiFi pinout](https://lastminuteengineers.com/arduino-uno-r4-wifi-pinout-reference/) (SDA/SCL = A4/A5 on the 5V header; the Qwiic plug is a separate 3.3V bus).
+Sources checked for the wiring: [Seeed Grove 3-axis accelerometer (LIS3DHTR) wiki](https://wiki.seeedstudio.com/Grove-3-Axis-Digital-Accelerometer-LIS3DHTR) (I2C address 0x19, 3–5V), [Seeed Grove Base Shield V2 wiki](https://wiki.seeedstudio.com/Base_Shield_V2/) (4 I2C ports; set the switch to 5V with an UNO), [Cirkit Designer Base Shield V2 reference](https://docs.cirkitdesigner.com/component/970281f8-3f5b-4db5-bd0c-88e0889d3bf4/grove-base-shield-v2) (I2C ports use A4 SDA / A5 SCL), [UNO R4 WiFi pinout](https://lastminuteengineers.com/arduino-uno-r4-wifi-pinout-reference/) (SDA/SCL = A4/A5 on the 5V header; the Qwiic plug is a separate 3.3V bus).

@@ -7,6 +7,10 @@
   (a fixed 30 ml per sip, no calibration needed). The red LED grid shows your sip count. If you go REMIND_MS
   without a sip, the water drop flashes on the LED grid to remind you to drink.
 
+  LED grid hidden under a Grove shield? Everything still works: the small "L" LED on the
+  board blinks once per sip, 3 times for a reminder, and fast if the sensor isn't found,
+  and the Serial Monitor (115200 baud) prints every sip.
+
   Step 1: run it with SEND_TO_APP 0 (the default). Everything works without Wi-Fi.
   Step 2 (later, once the app side is ready): set SEND_TO_APP 1 and fill in the Wi-Fi lines.
 
@@ -23,6 +27,7 @@
 #define MIN_SIP_MS    600      // shorter tips are bumps, not sips
 #define MAX_SIP_MS    15000    // longer than this = bottle lying down, not a sip
 #define REMIND_MS     (30UL * 60UL * 1000UL)  // remind after 30 min with no sip. For a demo try (60UL * 1000UL) = 1 min.
+#define USE_LED_GRID  1        // the red LED grid. Fine to leave at 1 even if a shield covers it.
 
 // ---------------- Sending to the app (leave at 0 for now) ----------------
 #define SEND_TO_APP   0
@@ -95,7 +100,16 @@ bool readG(float& x, float& y, float& z) {
   }
 }
 
-// ---------------- LED grid ----------------
+// ---------------- LED grid and the small L LED ----------------
+void draw() {
+#if USE_LED_GRID
+  matrix.renderBitmap(frame, 8, 12);
+#endif
+}
+// Blink the onboard L LED (pin 13): visible even when the grid is covered
+void blinkL(int times, int ms) {
+  for (int i = 0; i < times; i++) { digitalWrite(LED_BUILTIN, HIGH); delay(ms); digitalWrite(LED_BUILTIN, LOW); delay(ms); }
+}
 // 3x5 digits for the sip count
 const uint8_t DIGITS[10][5] = {
   {7, 5, 5, 5, 7}, {2, 6, 2, 2, 7}, {7, 1, 7, 4, 7}, {7, 1, 7, 1, 7}, {5, 5, 7, 1, 1},
@@ -112,24 +126,24 @@ void showCount(int n) {
   if (n >= 10) { drawDigit(n / 10, 2); drawDigit(n % 10, 7); }
   else drawDigit(n, 5);
   frame[0][0] = 1;  // small dot = running
-  matrix.renderBitmap(frame, 8, 12);
+  draw();
 }
 const char* DROP[8] = {".....##.....", "....####....", "...######...", "..########..", "..########..", "..########..", "...######...", "....####...."};
 void showDrop() {
   for (int r = 0; r < 8; r++) for (int c = 0; c < 12; c++) frame[r][c] = DROP[r][c] == '#';
-  matrix.renderBitmap(frame, 8, 12);
+  draw();
 }
 // Big X = something is wrong (accelerometer not found)
 void showError() {
   clearFrame();
   for (int i = 0; i < 8; i++) { frame[i][i + 2] = 1; frame[i][9 - i] = 1; }
-  matrix.renderBitmap(frame, 8, 12);
+  draw();
 }
 // Flash the drop a few times (the reminder)
 void flashDrop(int times) {
   for (int i = 0; i < times; i++) {
     showDrop(); delay(400);
-    clearFrame(); matrix.renderBitmap(frame, 8, 12); delay(300);
+    clearFrame(); draw(); delay(300);
   }
 }
 
@@ -193,20 +207,24 @@ float tiltDegrees(float x, float y, float z) {
 void setup() {
   Serial.begin(115200);
   delay(1500);
+  pinMode(LED_BUILTIN, OUTPUT);
+#if USE_LED_GRID
   matrix.begin();
+#endif
   Wire.begin();
   showDrop();
 
   findAccel();
   if (accel == ACC_NONE) {
-    Serial.println("Accelerometer not found. Check: black GND, red 5V, white SDA, yellow SCL. Run bottle_test first.");
+    Serial.println("Accelerometer not found. Check: black GND, red 5V, white SDA, yellow SCL (or that it's in an I2C port on the shield). Run bottle_test first.");
     showError();  // a big X on the LED grid
-    while (true) delay(1000);
+    while (true) blinkL(1, 100);  // L LED blinks fast
   }
 #if SEND_TO_APP
   connectWifi();
 #endif
   learnUpright();
+  blinkL(2, 150);
   lastSipAt = lastRemind = millis();
   showCount(0);
 }
@@ -231,6 +249,7 @@ void loop() {
           sips++;
           pendingSips++;
           lastSipAt = lastRemind = now;
+          blinkL(1, 150);
           Serial.print("Sip #"); Serial.print(sips);
           Serial.print(" (held "); Serial.print(held / 1000.0, 1);
           Serial.print(" s). Estimated total: "); Serial.print(sips * ML_PER_SIP); Serial.println(" ml");
@@ -246,6 +265,7 @@ void loop() {
   if (!tipped && now - lastSipAt >= REMIND_MS && now - lastRemind >= REMIND_MS) {
     lastRemind = now;
     Serial.println("Reminder: time for a sip of water.");
+    blinkL(3, 200);
     flashDrop(5);
     showCount(sips);
   }
