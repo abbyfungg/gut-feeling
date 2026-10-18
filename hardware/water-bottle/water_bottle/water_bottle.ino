@@ -276,9 +276,11 @@ void setup() {
     while (true) blinkL(1, 100);  // L LED blinks fast
   }
   learnUpright();
-#if SEND_TO_APP
   randomSeed(micros() ^ (unsigned long)analogRead(A0));
   snprintf(bootId, sizeof(bootId), "%08lx", (unsigned long)random(0x7FFFFFFF));
+  // Wired mode: the laptop script (usb-bridge.mjs) reads these GF lines and sends them to the app.
+  Serial.print("GF boot="); Serial.print(bootId); Serial.println(" total=0 ml=0");
+#if SEND_TO_APP
   connectWifi(8);  // at power-on, try harder (about 40 s) and explain what's wrong
   sendTotals(0);  // check in now, so the app shows "Online" straight away
   lastHeartbeat = millis();
@@ -311,6 +313,7 @@ void loop() {
           Serial.print("Sip #"); Serial.print(sips);
           Serial.print(" (held "); Serial.print(held / 1000.0, 1);
           Serial.print(" s). Estimated total: "); Serial.print(sips * ML_PER_SIP); Serial.println(" ml");
+          Serial.print("GF boot="); Serial.print(bootId); Serial.print(" total="); Serial.print(sips); Serial.print(" ml="); Serial.println(sips * ML_PER_SIP);
         } else {
           Serial.print("Not counted (tipped for "); Serial.print(held / 1000.0, 1); Serial.println(" s)");
         }

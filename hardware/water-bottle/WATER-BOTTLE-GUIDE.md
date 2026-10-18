@@ -13,7 +13,7 @@ The bottle is built and counting sips. 🎉
 - [x] **Step 3: Upload `bottle_test.ino`**
 - [x] **Step 4: Tape the sensor to the bottle**
 - [x] **Step 5: Upload `water_bottle.ino`**
-- [ ] Next: **Step 6: Send sips to the app** (20–30 min, once the app side is merged and live)
+- [ ] Next: **Step 6: Send sips to the app** over USB with `usb-bridge.mjs` (about 5 min, no Wi-Fi)
 - [ ] Optional: **Step 7: Go wireless** with a power bank (10 min)
 
 No calibration needed: every sip counts as a fixed **30 ml**, and the app labels the total as an estimate.
@@ -137,7 +137,28 @@ If any of that doesn't happen, see **Troubleshooting** at the bottom before movi
 
 ---
 
-## Step 6: Send sips to the app (20–30 min)
+## Step 6 (wired, recommended): Send sips to the app over USB (about 5 min)
+
+No Wi-Fi needed. The bottle stays plugged into your Mac, and a small script on the Mac sends each sip to the app.
+
+1. Upload `water_bottle.ino` as usual (leave `SEND_TO_APP` at `0`). **Close the Serial Monitor** afterwards, because only one program can use the USB port.
+2. In the app: **More > Water bottle > Pair a bottle**. Keep the screen open; you need the `DEVICE_TOKEN` (starts with `gfd_`) and the `SERVER_HOST` it shows.
+3. Open **Terminal** (Cmd+Space, type Terminal, Enter) and go to this folder, for example:
+   ```
+   cd ~/Downloads/gut-feeling/hardware/water-bottle
+   ```
+   (Or type `cd `, drag the `water-bottle` folder into the Terminal window, press Enter.)
+4. Check Node is installed: `node -v` should print v18 or higher. If not, install the LTS from nodejs.org.
+5. Run it, pasting your own values:
+   ```
+   GF_SERVER=https://SERVER_HOST_FROM_THE_APP GF_TOKEN=gfd_YOUR_CODE node usb-bridge.mjs
+   ```
+   It finds the Arduino by itself. If it says "No Arduino found", run `ls /dev/cu.usbmodem*` and add `GF_PORT=/dev/cu.usbmodemXXXX` at the front.
+6. You should see `Listening to /dev/cu.usbmodem…`, then `Sent: total 0 sips` (the app now says **Online**). Take a sip: `Sent: total 1 sips … +1 new (30 ml)`, and it appears in the app within a few seconds.
+
+Stop it with **Ctrl+C**. Restarting the script restarts the board, which is fine: nothing is double counted. Don't paste the code in chat or save it in a file you commit.
+
+## Step 6 (Wi-Fi, optional): Send sips to the app (20–30 min)
 
 The app side is live on main. After a redeploy, pair again (a redeploy wipes pairings).
 
