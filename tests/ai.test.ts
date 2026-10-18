@@ -345,3 +345,18 @@ describe("upload validation", () => {
     expect(validateImageUpload(big).ok).toBe(false);
   });
 });
+
+describe("Gemini prose never shows ids", () => {
+  it("turns entry ids, water refs, dates and flag keys into words", async () => {
+    const { makeHumanizer } = await import("@/lib/ai/refs");
+    const es = [
+      { id: "en_ASBdReqJGas3", kind: "movement", bristolType: 1, occurredAt: "2026-10-14T15:00:00Z" },
+      { id: "en_Zz9-k2LmQx0p", kind: "no_movement", bristolType: null, occurredAt: "2026-10-15T23:00:00Z" },
+    ] as unknown as import("@/lib/domain").Entry[];
+    const h = makeHumanizer(es, "America/Toronto", new Map([["hard_stools:en_ASBdReqJGas3", "Repeated hard stools"]]));
+    expect(h("Water was low on water:2026-10-14 before entry en_ASBdReqJGas3.")).toBe("Water was low on Oct 14 before Oct 14, type 1.");
+    expect(h("Nothing logged (ref: en_Zz9-k2LmQx0p) and [en_AAAAAAAAAAA1].")).toBe("Nothing logged (Oct 15, no movement) and (an entry).");
+    expect(h("The hard_stools:en_ASBdReqJGas3 flag fired on 2026-10-15T23:00:00.000Z.")).toBe('The "Repeated hard stools" flag fired on Oct 15.');
+    expect(h("A medication_change and hard_despite_fluids are fine words.")).toBe("A medication_change and hard_despite_fluids are fine words.");
+  });
+});
