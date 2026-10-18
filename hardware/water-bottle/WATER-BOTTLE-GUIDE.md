@@ -162,6 +162,22 @@ Without Wi-Fi it still counts sips, shows the count and flashes reminders. It ju
 
 ---
 
+## Wi-Fi keeps failing
+
+With `SEND_TO_APP 1`, the Serial Monitor (115200 baud) now explains each try. Press RESET and read it:
+
+| It says | What it means and what to do |
+| --- | --- |
+| `can't see that network name` | The board can't find your hotspot. Check the list under **Networks the board can see**. If your hotspot isn't there: on iPhone turn on **Maximise Compatibility** (Settings > Personal Hotspot) and keep that screen open; on Android set the hotspot band to **2.4 GHz**. Move the phone next to the board. |
+| Your hotspot is in the list but it still fails | `WIFI_SSID` must match the name in the list exactly, including capitals, spaces and apostrophes. Easiest: rename the hotspot to something plain like `gutbottle` (on iPhone, rename the phone in Settings > General > About > Name). |
+| `the network refused it` | Wrong `WIFI_PASS`. Retype it; use a simple password with no special characters. |
+| `the Wi-Fi chip isn't answering` | Unplug USB, plug it back in. If it keeps happening, update the firmware (next row). |
+| `Update it: … Firmware Updater` | The Wi-Fi chip's firmware is older than the library expects. Use Arduino IDE 2.2.1 or newer: close the Serial Monitor, then **Tools > Firmware Updater**, pick **UNO R4 WiFi**, click **Check Updates**, choose the newest version, click **Install**, wait for "Firmware successfully installed", then unplug and replug the board and upload `water_bottle.ino` again (installing the firmware wipes the sketch). |
+
+At power-on it tries for about 40 seconds. After that it keeps counting sips and retries every 30 seconds, so sips made while Wi-Fi is down are sent once it connects, and never counted twice.
+
+---
+
 ## Troubleshooting
 
 | What you see | Try |
@@ -179,7 +195,7 @@ Without Wi-Fi it still counts sips, shows the count and flashes reminders. It ju
 | Laying the bottle down counts as a sip | Lower `MAX_SIP_MS` (e.g. 8000) |
 | Count is wrong after moving the bottle around | Stand it upright and press RESET so it re-learns which way is up |
 | `'WIFI_SSID' was not declared in this scope` | The Wi-Fi lines got deleted when pasting the pairing code. Add `#define WIFI_SSID "your-hotspot-name"` and `#define WIFI_PASS "your-hotspot-password"` back under `#define SEND_TO_APP 1`. |
-| Wi-Fi fails (Step 6) | 2.4 GHz only. Check the name and password; try a phone hotspot. |
+| Wi-Fi fails (Step 6) | See **Wi-Fi keeps failing** above. |
 | On a power bank the LEDs turn off after a while | The power bank went to sleep because the board uses so little power. Try another power bank, or one with an "always on" or low-current mode. |
 | "Couldn't reach the app" | The free server sleeps. Open the site in a browser to wake it, wait a minute, then sip again. |
 
@@ -193,4 +209,4 @@ Without Wi-Fi it still counts sips, shows the count and flashes reminders. It ju
 | 6. Connect to the app | 20–30 min |
 | 7. Go wireless (optional) | 10 min |
 
-Sources checked for the wiring: [Seeed Grove 3-axis accelerometer (LIS3DHTR) wiki](https://wiki.seeedstudio.com/Grove-3-Axis-Digital-Accelerometer-LIS3DHTR) (I2C address 0x19, 3–5V), [Seeed Grove Base Shield V2 wiki](https://wiki.seeedstudio.com/Base_Shield_V2/) (4 I2C ports; set the switch to 5V with an UNO), [Cirkit Designer Base Shield V2 reference](https://docs.cirkitdesigner.com/component/970281f8-3f5b-4db5-bd0c-88e0889d3bf4/grove-base-shield-v2) (I2C ports use A4 SDA / A5 SCL), [UNO R4 WiFi pinout](https://lastminuteengineers.com/arduino-uno-r4-wifi-pinout-reference/) (SDA/SCL = A4/A5 on the 5V header; the Qwiic plug is a separate 3.3V bus).
+Sources checked for the wiring: [Seeed Grove 3-axis accelerometer (LIS3DHTR) wiki](https://wiki.seeedstudio.com/Grove-3-Axis-Digital-Accelerometer-LIS3DHTR) (I2C address 0x19, 3–5V), [Seeed Grove Base Shield V2 wiki](https://wiki.seeedstudio.com/Base_Shield_V2/) (4 I2C ports; set the switch to 5V with an UNO), [Cirkit Designer Base Shield V2 reference](https://docs.cirkitdesigner.com/component/970281f8-3f5b-4db5-bd0c-88e0889d3bf4/grove-base-shield-v2) (I2C ports use A4 SDA / A5 SCL), [Arduino: update the UNO R4 WiFi connectivity firmware](https://support.arduino.cc/hc/en-us/articles/9670986058780-Update-the-connectivity-module-firmware-on-UNO-R4-WiFi), [UNO R4 WiFi pinout](https://lastminuteengineers.com/arduino-uno-r4-wifi-pinout-reference/) (SDA/SCL = A4/A5 on the 5V header; the Qwiic plug is a separate 3.3V bus).
