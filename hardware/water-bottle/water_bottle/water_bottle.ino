@@ -4,7 +4,7 @@
 
   The accelerometer is taped to the bottle. When you tip the bottle to drink and put it back
   upright, that counts as one sip. Sips x ML_PER_SIP gives an ESTIMATE of how much you drank
-  (calibrate it, see the guide). The red LED grid shows your sip count. If you go REMIND_MS
+  (a fixed 30 ml per sip, no calibration needed). The red LED grid shows your sip count. If you go REMIND_MS
   without a sip, the water drop flashes on the LED grid to remind you to drink.
 
   Step 1: run it with SEND_TO_APP 0 (the default). Everything works without Wi-Fi.
@@ -17,7 +17,7 @@
 #include "Arduino_LED_Matrix.h"
 
 // ---------------- Settings you can change ----------------
-#define ML_PER_SIP    30       // average ml per sip. Calibrate: see the guide.
+#define ML_PER_SIP    30       // fixed estimate of ml per sip
 #define TILT_SIP      50       // degrees: tipping past this starts a sip
 #define TILT_UPRIGHT  25       // degrees: coming back under this ends it
 #define MIN_SIP_MS    600      // shorter tips are bumps, not sips
@@ -175,8 +175,8 @@ bool tipped = false;
 unsigned long tipStart = 0, lastSipAt = 0, lastRemind = 0, lastSample = 0;
 int sips = 0;
 
-void calibrate() {
-  Serial.println("Calibrating: keep the bottle upright and still for 2 seconds...");
+void learnUpright() {
+  Serial.println("Getting ready: keep the bottle upright and still for 2 seconds...");
   float sx = 0, sy = 0, sz = 0, x, y, z;
   int n = 0;
   for (int i = 0; i < 40; i++) { if (readG(x, y, z)) { sx += x; sy += y; sz += z; n++; } delay(50); }
@@ -206,7 +206,7 @@ void setup() {
 #if SEND_TO_APP
   connectWifi();
 #endif
-  calibrate();
+  learnUpright();
   lastSipAt = lastRemind = millis();
   showCount(0);
 }

@@ -4,17 +4,17 @@ You'll tape a small motion sensor (the accelerometer) to a water bottle. Each ti
 
 ## ✅ What to do next
 
-You've got the Arduino software installed and the board connected, so **Step 1 is done**. From here:
+The bottle is built and counting sips. 🎉
 
-- [ ] **Step 2: Wire it up** (5–10 min, USB unplugged): just 4 wires, no breadboard
-- [ ] **Step 3: Upload `bottle_test.ino`** and check the four corner LEDs light up, the Serial Monitor says `Accelerometer: …`, and `tilt` goes from 0 to about 90 when you tip it (15 min)
-- [ ] **Step 4: Tape the sensor to the bottle** (10 min)
-- [ ] **Step 5: Upload `water_bottle.ino`** and see the sip count go up when you drink (15–20 min)
-- [ ] **Step 6: Calibrate** ml per sip (15 min)
-- [ ] Optional: **Step 8: Go wireless** with a power bank (10 min)
-- [ ] Later: **Step 7: Send sips to the app** (once we push the app side)
+- [x] **Step 1: Install the Arduino software**
+- [x] **Step 2: Wire it up**
+- [x] **Step 3: Upload `bottle_test.ino`**
+- [x] **Step 4: Tape the sensor to the bottle**
+- [x] **Step 5: Upload `water_bottle.ino`**
+- [ ] Next: **Step 6: Send sips to the app** (20–30 min, once the app side is merged and live)
+- [ ] Optional: **Step 7: Go wireless** with a power bank (10 min)
 
-**Time left: about 1¼ hours**, including a buffer for things going wrong.
+No calibration needed: every sip counts as a fixed **30 ml**, and the app labels the total as an estimate.
 
 ---
 
@@ -27,7 +27,7 @@ You've got the Arduino software installed and the board connected, so **Step 1 i
 | Grove 3-axis accelerometer | Senses when the bottle tips |
 | 1 Grove jumper cable (Grove plug on one end, 4 loose pins on the other) | Connects the accelerometer to the Arduino |
 | Water bottle, tape (electrical or duct), a small zip bag, a rubber band | Mounting |
-| USB power bank (optional) | Runs it without a laptop (Step 8) |
+| USB power bank (optional) | Runs it without a laptop (Step 7) |
 
 You **don't** need the buzzer, the breadboard, the temperature/barometer sensor or the DC motor.
 
@@ -126,28 +126,9 @@ If any of that doesn't happen, see **Troubleshooting** at the bottom before movi
 
 ---
 
-## Step 6: Calibrate how much a sip is (about 15 min)
+## Step 6: Send sips to the app (20–30 min)
 
-The default guess is 30 ml per sip. To make yours more accurate:
-
-1. Fill the bottle and measure how much is in it (or fill it to a mark).
-2. Press RESET, then take **10 normal sips**.
-3. Measure how much water is gone, for example 280 ml.
-4. Divide by 10 (here 28) and set `#define ML_PER_SIP 28`. Upload again.
-
-You can also tune what counts as a sip:
-
-| If… | Change |
-| --- | --- |
-| Small sips aren't counted | Lower `TILT_SIP` (e.g. 40) or `MIN_SIP_MS` (e.g. 400) |
-| Moving or carrying the bottle counts as a sip | Raise `TILT_SIP` (e.g. 60) or `MIN_SIP_MS` (e.g. 900) |
-| Laying the bottle down counts | Lower `MAX_SIP_MS` (e.g. 8000) |
-
----
-
-## Step 7 (later): Send sips to the app (20–30 min)
-
-Do this once the app side is ready (it's built but not published yet; we'll tell you when).
+Do this once the app side is merged and live (it's on the `hardware-water-bottle` branch for now).
 
 1. In the app, sign in and go to **More > Water bottle > Pair a bottle**. Copy the four lines it shows.
 2. In `water_bottle.ino`, set `#define SEND_TO_APP 1`, then paste the four lines over the matching ones and fill in `WIFI_SSID` and `WIFI_PASS`. The UNO R4 only joins **2.4 GHz** Wi-Fi. A phone hotspot works well (on iPhone, turn on "Maximise Compatibility").
@@ -157,14 +138,14 @@ Do this once the app side is ready (it's built but not published yet; we'll tell
 
 ---
 
-## Step 8 (optional): Go wireless with a power bank (about 10 min)
+## Step 7 (optional): Go wireless with a power bank (about 10 min)
 
 The UNO R4 WiFi doesn't need a laptop once the sketch is uploaded. The sketch stays on the board, and it runs as soon as it gets power.
 
 1. **Power:** plug the Arduino's USB-C into a **USB power bank** instead of the laptop. Any phone power bank works. (Some power banks switch off when very little power is drawn. If the LEDs go dark after a minute, press the power bank's button, or try a different one.)
 2. **Mount everything on the bottle:** put the Arduino in a zip bag (keep it away from water), then strap it to the side of the bottle with rubber bands and tape. The accelerometer stays taped to the bottle as in Step 4. The power bank can go in the same bag or in your pocket with a longer cable.
-3. **Start it upright:** after plugging in the power bank, stand the bottle upright and still for 2 seconds while it calibrates (you'll see the water drop, then `0`).
-4. **Wi-Fi (only for sending to the app, Step 7):** the board joins Wi-Fi on its own. At a hackathon the venue Wi-Fi often blocks devices or needs a login page, which the Arduino can't do. Use a **phone hotspot** instead: 2.4 GHz, and on iPhone turn on **Maximise Compatibility**. Put that hotspot's name and password in `WIFI_SSID` / `WIFI_PASS`.
+3. **Start it upright:** after plugging in the power bank, stand the bottle upright and still for 2 seconds while it gets ready (you'll see the water drop, then `0`).
+4. **Wi-Fi (only for sending to the app, Step 6):** the board joins Wi-Fi on its own. At a hackathon the venue Wi-Fi often blocks devices or needs a login page, which the Arduino can't do. Use a **phone hotspot** instead: 2.4 GHz, and on iPhone turn on **Maximise Compatibility**. Put that hotspot's name and password in `WIFI_SSID` / `WIFI_PASS`.
 
 Without Wi-Fi it still counts sips, shows the count and flashes reminders. It just doesn't send them anywhere.
 
@@ -181,9 +162,11 @@ Without Wi-Fi it still counts sips, shows the count and flashes reminders. It ju
 | `Accelerometer: NOT FOUND` (or a big X on the LEDs), and the I2C scan shows nothing | White and yellow are probably swapped or loose. White → SDA, yellow → SCL. Check red is on 5V and black on GND. |
 | The scan finds something, but it says NOT FOUND | You may have a different accelerometer model. Send us the address the scan printed. |
 | Corner LEDs don't light up | Check Tools > Board says UNO R4 WiFi and upload again. |
-| Sips count when I just pick the bottle up | Raise `TILT_SIP` or `MIN_SIP_MS` (Step 6) |
-| Count is wrong after moving the bottle around | Stand it upright and press RESET to recalibrate |
-| Wi-Fi fails (Step 7) | 2.4 GHz only. Check the name and password; try a phone hotspot. |
+| Small sips aren't counted | Lower `TILT_SIP` (e.g. 40) or `MIN_SIP_MS` (e.g. 400) in `water_bottle.ino` |
+| Sips count when I just pick the bottle up | Raise `TILT_SIP` (e.g. 60) or `MIN_SIP_MS` (e.g. 900) |
+| Laying the bottle down counts as a sip | Lower `MAX_SIP_MS` (e.g. 8000) |
+| Count is wrong after moving the bottle around | Stand it upright and press RESET so it re-learns which way is up |
+| Wi-Fi fails (Step 6) | 2.4 GHz only. Check the name and password; try a phone hotspot. |
 | On a power bank the LEDs turn off after a while | The power bank went to sleep because the board uses so little power. Try another power bank, or one with an "always on" or low-current mode. |
 | "Couldn't reach the app" | The free server sleeps. Open the site in a browser to wake it, wait a minute, then sip again. |
 
@@ -193,15 +176,8 @@ Without Wi-Fi it still counts sips, shows the count and flashes reminders. It ju
 
 | Step | Time |
 | --- | --- |
-| 1. Install Arduino software and test Blink | ✅ done |
-| 2. Wiring | 5–10 min |
-| 3. First test sketch | 15 min |
-| 4. Mount on the bottle | 10 min |
-| 5. Full sketch | 15–20 min |
-| 6. Calibrate | 15 min |
-| Buffer for problems | 30 min |
-| **Left to do** | **about 1¼ hours** |
-| 8. Go wireless (optional) | 10 min |
-| 7. Connect to the app (later) | 20–30 min |
+| 1–5. Build the bottle | ✅ done |
+| 6. Connect to the app | 20–30 min |
+| 7. Go wireless (optional) | 10 min |
 
 Sources checked for the wiring: [Seeed Grove 3-axis accelerometer (LIS3DHTR) wiki](https://wiki.seeedstudio.com/Grove-3-Axis-Digital-Accelerometer-LIS3DHTR) (I2C address 0x19, 3–5V), [UNO R4 WiFi pinout](https://lastminuteengineers.com/arduino-uno-r4-wifi-pinout-reference/) (SDA/SCL = A4/A5 on the 5V header; the Qwiic plug is a separate 3.3V bus).

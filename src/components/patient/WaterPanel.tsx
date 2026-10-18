@@ -117,7 +117,7 @@ export function WaterPanel({ initial, initialPairing, today }: { initial: Today;
         <button type="button" className="btn btn-secondary" onClick={() => add("manual", 250, 0)} disabled={busy}>
           <Icon name="plus" /> Add a glass (250 ml)
         </button>
-        <p className="tiny muted">Bottle amounts are estimates: sips × the ml-per-sip you set when calibrating. A glass you add yourself counts as 250 ml.</p>
+        <p className="tiny muted">Bottle amounts are estimates: each sip counts as about 30 ml. A glass you add yourself counts as 250 ml.</p>
       </section>
 
       <section className="card stack-3" aria-labelledby="sim-h">
