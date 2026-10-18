@@ -124,6 +124,7 @@ const stamp = `e2e note ${Date.now()}`;
 
   await page.goto(BASE + "/care?view=patients");
   await shot(page, "11-care-patients");
+  check((await page.getByText("Walter Brooks").count()) > 0, "story patient (Walter) listed for Priya");
   check(!(await page.getByText("Linh Tran").isVisible().catch(() => false)), "unshared patient (Linh) not listed");
   check(!(await page.getByText("Omar Haddad").isVisible().catch(() => false)), "revoked patient (Omar) not listed");
 

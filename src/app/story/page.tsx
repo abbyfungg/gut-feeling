@@ -22,6 +22,14 @@ const STEPS: { day: string; who: Who; title: string; body: string }[] = [
   { day: "Days 9–14", who: "outcome", title: "Back to his normal", body: "The GP adjusts his plan. With more water and short walks, Walter is back to type 3s and 4s within days. No emergency visit." },
 ];
 
+const WHAT_IF: { title: string; body: string }[] = [
+  { title: "Stool keeps building up", body: "The longer it stays in the bowel, the more water is absorbed and the harder and larger it gets, which makes it even harder to pass." },
+  { title: "Faecal impaction", body: "A hard mass forms that can't pass on its own. Watery stool can leak around it, which can look like diarrhoea and be mistaken for the opposite problem." },
+  { title: "Knock-on effects in older adults", body: "Pain and pressure can bring loss of appetite, nausea, trouble passing urine, new confusion, and a higher chance of falls." },
+  { title: "Bowel obstruction", body: "Severe cramping, a swollen belly and vomiting. This is an emergency that needs hospital care, and sometimes a procedure." },
+  { title: "Rarely, damage to the bowel wall", body: "In the most serious cases, prolonged pressure can injure the bowel, which is life-threatening." },
+];
+
 const LABEL: Record<Who, { text: string; cls: string; icon: string }> = {
   patient: { text: "Patient-reported", cls: "badge-patient", icon: "user" },
   rule: { text: "Rule-based flag", cls: "badge-rule", icon: "flag" },
@@ -68,6 +76,29 @@ export default async function Story() {
               </li>
             ))}
           </ol>
+
+          <section className="mk-story-what-if" aria-labelledby="what-if">
+            <span className="badge badge-warn" style={{ width: "fit-content" }}>
+              Illustration of known risks · not a prediction
+            </span>
+            <h2 id="what-if">What could have happened without the early flag</h2>
+            <p className="muted">
+              Walter&apos;s next planned visit was a week away. Pain medicines like his slow the gut down, so this kind of constipation often doesn&apos;t clear up on its own. If nobody had noticed,
+              this is how it can go:
+            </p>
+            <ol className="mk-whatif">
+              {WHAT_IF.map((w) => (
+                <li key={w.title}>
+                  <strong>{w.title}</strong>
+                  <span>{w.body}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="small faint">
+              These are well-known complications of severe, untreated constipation, especially in older adults. Every person is different, and most constipation is mild. If you&apos;re worried
+              about your own symptoms, contact a healthcare provider. For severe belly pain, a swollen belly or repeated vomiting, get urgent care.
+            </p>
+          </section>
 
           <section className="mk-story-why">
             <h2>What made the difference</h2>

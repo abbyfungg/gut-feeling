@@ -25,7 +25,14 @@ export function ensureSeeded() {
   seededChecked = true;
   if (!getConfig().seedDemoData) return;
   const count = (getDb().prepare("SELECT COUNT(*) AS n FROM users").get() as { n: number }).n;
-  if (count === 0) seedDemoData(new Date());
+  if (count === 0) {
+    seedDemoData(new Date());
+    return;
+  }
+  // Databases seeded before the caught-early story existed get Walter added once.
+  const has = (email: string) => getDb().prepare("SELECT id FROM users WHERE email = ?").get(email) as { id: string } | undefined;
+  const priya = has(DEMO_ACCOUNTS.practitioner);
+  if (priya && !has(DEMO_ACCOUNTS.story)) transaction(() => seedStoryPatient(new Date(), priya.id));
 }
 
 export function resetSeedFlagForTests() {
@@ -98,7 +105,6 @@ export function seedDemoData(now: Date) {
     const daniel = patient("daniel@demo.gutfeeling.health", "Daniel Reyes", "67 · recovering from a chest infection · home-care client");
     const ruth = patient("ruth@demo.gutfeeling.health", "Ruth Adeyemi", "74 · home-care client · logs most days");
     const tom = patient("tom@demo.gutfeeling.health", "Tom Becker", "45 · tracking after a diet change");
-    const walter = patient(DEMO_ACCOUNTS.story, "Walter Brooks", "79 · home-care client, son helps log · caught-early demo story");
     const linh = patient("linh@demo.gutfeeling.health", "Linh Tran", "34 · shares with her GI specialist only");
     const omar = patient("omar@demo.gutfeeling.health", "Omar Haddad", "52 · stopped sharing with Maple Grove");
 
@@ -113,73 +119,12 @@ export function seedDemoData(now: Date) {
           zoned(addDays(today, -daysAgo), 10, 0, tz),
           revokedDaysAgo != null ? zoned(addDays(today, -revokedDaysAgo), 10, 0, tz) : null,
         );
-    for (const p of [maya, peggy, daniel, ruth, tom, walter]) link(p.id, priya.id, 40);
+    for (const p of [maya, peggy, daniel, ruth, tom]) link(p.id, priya.id, 40);
     link(maya.id, okafor.id, 60);
     link(linh.id, okafor.id, 30);
     link(omar.id, priya.id, 40, 2);
 
-    const insert = (patientId: string, list: SeedEntry[]) => {
-      const ids: string[] = [];
-      for (const e of list) {
-        let at = zoned(addDays(today, -e.daysAgo), e.hour, e.minute ?? 0, tz);
-        if (new Date(at) > now) at = new Date(now.getTime() - 15 * 60_000).toISOString();
-        const kind = e.kind ?? "movement";
-        const ai: StoredAiAnalysis | null =
-          e.ai && e.type
-            ? {
-                simulated: true,
-                model: "simulated (demo seed data)",
-                analyzedAt: at,
-                usable: true,
-                estimatedType: e.type,
-                confidence: "medium",
-                colorObservation: "brown",
-                observations: ["Simulated result for the demo; not produced by a live model."],
-                limitations: "Seeded demo data.",
-              }
-            : null;
-        const id = newId("en");
-        ids.push(id);
-        db.prepare(
-          `INSERT INTO entries (id, patient_id, kind, occurred_at, bristol_type, bristol_source, symptoms, context, blood_report, notes, ai_analysis, is_synthetic, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
-        ).run(
-          id,
-          patientId,
-          kind,
-          at,
-          kind === "movement" ? (e.type ?? null) : null,
-          kind === "movement" && e.type ? (ai ? "ai_accepted" : "user") : null,
-          e.symptoms ? JSON.stringify(e.symptoms) : null,
-          e.context ? JSON.stringify(e.context) : null,
-          e.blood ?? null,
-          e.notes ?? null,
-          ai ? JSON.stringify(ai) : null,
-          at,
-        );
-      }
-      return ids;
-    };
-
-    // Steady background history for a range of days
-    const steady = (seed: number, fromDaysAgo: number, toDaysAgo: number, types: number[], perDay = [1, 1, 2]): SeedEntry[] => {
-      const r = rng(seed);
-      const out: SeedEntry[] = [];
-      for (let d = fromDaysAgo; d >= toDaysAgo; d--) {
-        const n = perDay[Math.floor(r() * perDay.length)];
-        for (let i = 0; i < n; i++) {
-          out.push({
-            daysAgo: d,
-            hour: i === 0 ? 7 + Math.floor(r() * 3) : 15 + Math.floor(r() * 5),
-            minute: Math.floor(r() * 60),
-            type: types[Math.floor(r() * types.length)],
-            symptoms: r() < 0.5 ? [] : null,
-            ai: r() < 0.25,
-          });
-        }
-      }
-      return out;
-    };
+    const { insert, steady, entriesOf } = seedHelpers(db, tz, today, now);
 
     // Maya: drifting looser than her own baseline, plus a self-reported possible blood observation.
     insert(maya.id, [
@@ -216,26 +161,6 @@ export function seedDemoData(now: Date) {
     // Ruth: regular history, then nothing logged for days. Missing data, not a symptom.
     insert(ruth.id, [...steady(44, 20, 6, [3, 4, 4, 5], [1])]);
 
-    // Walter: the "caught early" story. A new pain medicine, then firmer stools and three days with
-    // nothing. The rules flagged it, the nurse called the same morning, and things settled within days.
-    insert(walter.id, [
-      ...steady(88, 29, 14, [4, 4, 3, 4], [1]),
-      { daysAgo: 13, hour: 9, type: 3, context: ["medication_change"], notes: "Started a new pain medicine after his hip appointment (logged by son)." },
-      { daysAgo: 12, hour: 10, type: 2, symptoms: ["straining"] },
-      { daysAgo: 11, hour: 9, minute: 40, type: 2, symptoms: ["straining", "discomfort"], context: ["low_fluids"], notes: "Not drinking much, says he isn't thirsty." },
-      { daysAgo: 10, hour: 11, type: 1, symptoms: ["straining", "discomfort", "bloating"] },
-      { daysAgo: 9, hour: 20, kind: "no_movement" },
-      { daysAgo: 8, hour: 20, kind: "no_movement", notes: "Says his belly feels hard and full." },
-      { daysAgo: 7, hour: 20, kind: "no_movement" },
-      { daysAgo: 6, hour: 15, type: 3, symptoms: ["discomfort"], notes: "Saw the GP this morning and the plan was adjusted. Drinking more water and walking after lunch." },
-      { daysAgo: 5, hour: 9, type: 3, symptoms: [] },
-      { daysAgo: 4, hour: 8, minute: 30, type: 4, symptoms: [] },
-      { daysAgo: 3, hour: 9, type: 3, symptoms: [] },
-      { daysAgo: 2, hour: 8, minute: 15, type: 4, symptoms: [] },
-      { daysAgo: 1, hour: 9, minute: 5, type: 4, symptoms: [] },
-      { daysAgo: 0, hour: 8, minute: 20, type: 4, symptoms: [] },
-    ]);
-
     // Tom: steady and unremarkable.
     insert(tom.id, [...steady(55, 20, 0, [3, 4, 4, 5, 4])]);
 
@@ -246,24 +171,6 @@ export function seedDemoData(now: Date) {
     insert(omar.id, [...steady(77, 14, 1, [4, 5])]);
 
     // A completed review on Daniel's fever report to show the review history.
-    const entriesOf = (patientId: string) => (db.prepare("SELECT * FROM entries WHERE patient_id = ?").all(patientId) as Record<string, unknown>[]).map(
-      (r) =>
-        ({
-          id: r.id,
-          patientId: r.patient_id,
-          kind: r.kind,
-          occurredAt: r.occurred_at,
-          bristolType: r.bristol_type,
-          bristolSource: r.bristol_source,
-          symptoms: r.symptoms ? JSON.parse(r.symptoms as string) : null,
-          context: r.context ? JSON.parse(r.context as string) : null,
-          bloodReport: r.blood_report,
-          notes: r.notes,
-          ai: null,
-          isSynthetic: true,
-          createdAt: r.created_at,
-        }) as Entry,
-    );
     const danielEntries = entriesOf(daniel.id);
     const fever = evaluateRules(danielEntries, now, tz).flags.find((f) => f.rule === "severe_symptoms");
     if (fever && danielIds.length) {
@@ -286,30 +193,154 @@ export function seedDemoData(now: Date) {
       );
     }
 
-    // Walter's episode was reviewed the morning after the third quiet day, and the follow-up closed.
-    const walterFlags = evaluateRules(entriesOf(walter.id), now, tz).flags.filter((f) => f.rule === "no_movement" || f.rule === "hard_stools" || f.rule === "baseline_shift");
-    const reviewedAt = zoned(addDays(today, -6), 9, 10, tz);
-    const doneAt = zoned(addDays(today, -5), 11, 0, tz);
-    for (const f of walterFlags) {
-      const main = f.rule === "no_movement";
+
+    seedStoryPatient(now, priya.id);
+  });
+}
+
+type Db = ReturnType<typeof getDb>;
+
+/** Shared seed helpers: insert synthetic entries, generate steady history, and read entries back. */
+function seedHelpers(db: Db, tz: string, today: string, now: Date) {
+  const insert = (patientId: string, list: SeedEntry[]) => {
+    const ids: string[] = [];
+    for (const e of list) {
+      let at = zoned(addDays(today, -e.daysAgo), e.hour, e.minute ?? 0, tz);
+      if (new Date(at) > now) at = new Date(now.getTime() - 15 * 60_000).toISOString();
+      const kind = e.kind ?? "movement";
+      const ai: StoredAiAnalysis | null =
+        e.ai && e.type
+          ? {
+              simulated: true,
+              model: "simulated (demo seed data)",
+              analyzedAt: at,
+              usable: true,
+              estimatedType: e.type,
+              confidence: "medium",
+              colorObservation: "brown",
+              observations: ["Simulated result for the demo; not produced by a live model."],
+              limitations: "Seeded demo data.",
+            }
+          : null;
+      const id = newId("en");
+      ids.push(id);
       db.prepare(
-        `INSERT INTO reviews (id, patient_id, practitioner_id, flag_key, flag_rule, flag_title, evidence_ids, decision, note, follow_up, follow_up_status, suggestion_source, created_at, completed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'contact_patient', ?, ?, 'done', 'rule_template', ?, ?)`,
+        `INSERT INTO entries (id, patient_id, kind, occurred_at, bristol_type, bristol_source, symptoms, context, blood_report, notes, ai_analysis, is_synthetic, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
       ).run(
-        newId("rv"),
-        walter.id,
-        priya.id,
-        f.key,
-        f.rule,
-        f.title,
-        JSON.stringify(f.evidenceIds),
-        main
-          ? "Called his son at 9 a.m. New pain medicine started a week ago, drinking little, belly feels full. Arranged a same-day GP review instead of waiting for next week's visit. (Synthetic demo record.)"
-          : "Firmer stools began right after the new pain medicine. Raised with the GP alongside the three quiet days. (Synthetic demo record.)",
-        main ? "GP review today. Phone check-in tomorrow on bowels, fluids and comfort." : "Watch types over the next week.",
-        reviewedAt,
-        doneAt,
+        id,
+        patientId,
+        kind,
+        at,
+        kind === "movement" ? (e.type ?? null) : null,
+        kind === "movement" && e.type ? (ai ? "ai_accepted" : "user") : null,
+        e.symptoms ? JSON.stringify(e.symptoms) : null,
+        e.context ? JSON.stringify(e.context) : null,
+        e.blood ?? null,
+        e.notes ?? null,
+        ai ? JSON.stringify(ai) : null,
+        at,
       );
     }
-  });
+    return ids;
+  };
+
+  // Steady background history for a range of days
+  const steady = (seed: number, fromDaysAgo: number, toDaysAgo: number, types: number[], perDay = [1, 1, 2]): SeedEntry[] => {
+    const r = rng(seed);
+    const out: SeedEntry[] = [];
+    for (let d = fromDaysAgo; d >= toDaysAgo; d--) {
+      const n = perDay[Math.floor(r() * perDay.length)];
+      for (let i = 0; i < n; i++) {
+        out.push({
+          daysAgo: d,
+          hour: i === 0 ? 7 + Math.floor(r() * 3) : 15 + Math.floor(r() * 5),
+          minute: Math.floor(r() * 60),
+          type: types[Math.floor(r() * types.length)],
+          symptoms: r() < 0.5 ? [] : null,
+          ai: r() < 0.25,
+        });
+      }
+    }
+    return out;
+  };
+
+  const entriesOf = (patientId: string) => (db.prepare("SELECT * FROM entries WHERE patient_id = ?").all(patientId) as Record<string, unknown>[]).map(
+    (r) =>
+      ({
+        id: r.id,
+        patientId: r.patient_id,
+        kind: r.kind,
+        occurredAt: r.occurred_at,
+        bristolType: r.bristol_type,
+        bristolSource: r.bristol_source,
+        symptoms: r.symptoms ? JSON.parse(r.symptoms as string) : null,
+        context: r.context ? JSON.parse(r.context as string) : null,
+        bloodReport: r.blood_report,
+        notes: r.notes,
+        ai: null,
+        isSynthetic: true,
+        createdAt: r.created_at,
+      }) as Entry,
+  );
+  return { insert, steady, entriesOf };
+}
+
+/**
+ * Walter's "caught early" story: a synthetic patient whose flags were reviewed in time.
+ * Also used to add him to databases seeded before the story existed.
+ */
+export function seedStoryPatient(now: Date, priyaId: string) {
+  const tz = getConfig().timezone;
+  const today = localDay(now, tz);
+  const db = getDb();
+  const { insert, steady, entriesOf } = seedHelpers(db, tz, today, now);
+  const walter = createUser({ email: DEMO_ACCOUNTS.story, name: "Walter Brooks", role: "patient", about: "79 · home-care client, son helps log · caught-early demo story", password: DEMO_PASSWORD, isSynthetic: true });
+  db.prepare("INSERT INTO care_links (id, patient_id, practitioner_id, status, granted_at, revoked_at) VALUES (?, ?, ?, 'active', ?, NULL)").run(newId("cl"), walter.id, priyaId, zoned(addDays(today, -40), 10, 0, tz));
+  const priya = { id: priyaId };
+  // Walter: the "caught early" story. A new pain medicine, then firmer stools and three days with
+  // nothing. The rules flagged it, the nurse called the same morning, and things settled within days.
+  insert(walter.id, [
+    ...steady(88, 29, 14, [4, 4, 3, 4], [1]),
+    { daysAgo: 13, hour: 9, type: 3, context: ["medication_change"], notes: "Started a new pain medicine after his hip appointment (logged by son)." },
+    { daysAgo: 12, hour: 10, type: 2, symptoms: ["straining"] },
+    { daysAgo: 11, hour: 9, minute: 40, type: 2, symptoms: ["straining", "discomfort"], context: ["low_fluids"], notes: "Not drinking much, says he isn't thirsty." },
+    { daysAgo: 10, hour: 11, type: 1, symptoms: ["straining", "discomfort", "bloating"] },
+    { daysAgo: 9, hour: 20, kind: "no_movement" },
+    { daysAgo: 8, hour: 20, kind: "no_movement", notes: "Says his belly feels hard and full." },
+    { daysAgo: 7, hour: 20, kind: "no_movement" },
+    { daysAgo: 6, hour: 15, type: 3, symptoms: ["discomfort"], notes: "Saw the GP this morning and the plan was adjusted. Drinking more water and walking after lunch." },
+    { daysAgo: 5, hour: 9, type: 3, symptoms: [] },
+    { daysAgo: 4, hour: 8, minute: 30, type: 4, symptoms: [] },
+    { daysAgo: 3, hour: 9, type: 3, symptoms: [] },
+    { daysAgo: 2, hour: 8, minute: 15, type: 4, symptoms: [] },
+    { daysAgo: 1, hour: 9, minute: 5, type: 4, symptoms: [] },
+    { daysAgo: 0, hour: 8, minute: 20, type: 4, symptoms: [] },
+  ]);
+
+  // Walter's episode was reviewed the morning after the third quiet day, and the follow-up closed.
+  const walterFlags = evaluateRules(entriesOf(walter.id), now, tz).flags.filter((f) => f.rule === "no_movement" || f.rule === "hard_stools" || f.rule === "baseline_shift");
+  const reviewedAt = zoned(addDays(today, -6), 9, 10, tz);
+  const doneAt = zoned(addDays(today, -5), 11, 0, tz);
+  for (const f of walterFlags) {
+    const main = f.rule === "no_movement";
+    db.prepare(
+      `INSERT INTO reviews (id, patient_id, practitioner_id, flag_key, flag_rule, flag_title, evidence_ids, decision, note, follow_up, follow_up_status, suggestion_source, created_at, completed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'contact_patient', ?, ?, 'done', 'rule_template', ?, ?)`,
+    ).run(
+      newId("rv"),
+      walter.id,
+      priya.id,
+      f.key,
+      f.rule,
+      f.title,
+      JSON.stringify(f.evidenceIds),
+      main
+        ? "Called his son at 9 a.m. New pain medicine started a week ago, drinking little, belly feels full. Arranged a same-day GP review instead of waiting for next week's visit. (Synthetic demo record.)"
+        : "Firmer stools began right after the new pain medicine. Raised with the GP alongside the three quiet days. (Synthetic demo record.)",
+      main ? "GP review today. Phone check-in tomorrow on bowels, fluids and comfort." : "Watch types over the next week.",
+      reviewedAt,
+      doneAt,
+    );
+  }
 }

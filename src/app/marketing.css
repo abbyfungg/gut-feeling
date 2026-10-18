@@ -928,3 +928,40 @@
 .mk-story-link:hover {
   background: var(--primary-soft-2, var(--primary-soft));
 }
+.mk-story-what-if {
+  margin-top: var(--s-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-6);
+  border-radius: var(--r-xl);
+  background: var(--peach);
+  border: 1px solid color-mix(in srgb, var(--peach-ink) 18%, transparent);
+}
+.mk-story-what-if h2 {
+  font-size: var(--fs-24);
+}
+.mk-story-what-if p {
+  margin: 0;
+}
+.mk-whatif {
+  margin: 0;
+  padding-left: 1.4em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.mk-whatif li {
+  padding-left: 4px;
+}
+.mk-whatif li::marker {
+  font-weight: 700;
+  color: var(--peach-ink);
+}
+.mk-whatif strong {
+  display: block;
+}
+.mk-whatif span {
+  color: var(--text-2);
+  line-height: 1.5;
+}

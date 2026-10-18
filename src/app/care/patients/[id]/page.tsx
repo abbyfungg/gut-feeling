@@ -136,7 +136,7 @@ export default async function CarePatient({
           <div className="story-banner">
             <Icon name="heart" size={16} />
             <span className="grow">
-              <strong>Caught early.</strong> The rules flagged Walter&apos;s firmer stools and three quiet days, and a same-day call kept it from becoming an emergency. Fictional demo story.
+              <strong>Caught early.</strong> The rules flagged Walter&apos;s firmer stools and three quiet days, and a same-day call got him seen. Left until his next visit a week later, opioid-related constipation like this can progress to faecal impaction or bowel obstruction needing hospital care. Fictional demo story.
             </span>
             <Link href="/story" className="link-btn small">
               Read the story <Icon name="arrow" size={14} />
