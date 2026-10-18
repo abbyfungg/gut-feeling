@@ -12,7 +12,7 @@
   and the Serial Monitor (115200 baud) prints every sip.
 
   Step 1: run it with SEND_TO_APP 0 (the default). Everything works without Wi-Fi.
-  Step 2 (later, once the app side is ready): set SEND_TO_APP 1 and fill in the Wi-Fi lines.
+  Step 2: set SEND_TO_APP 1, fill in WIFI_SSID / WIFI_PASS, and paste the 4 pairing lines.
 
   No extra libraries needed. Guide: WATER-BOTTLE-GUIDE.md
 */
@@ -29,17 +29,25 @@
 #define REMIND_MS     (30UL * 60UL * 1000UL)  // remind after 30 min with no sip. For a demo try (60UL * 1000UL) = 1 min.
 #define USE_LED_GRID  1        // the red LED grid. Fine to leave at 1 even if a shield covers it.
 
-// ---------------- Sending to the app (leave at 0 for now) ----------------
+// ---------------- Sending to the app (set to 1 to send sips) ----------------
 #define SEND_TO_APP   0
-#if SEND_TO_APP
-#include <WiFiS3.h>
+
+// Your phone hotspot (2.4 GHz). Keep these two lines when you paste the pairing code below.
 // Don't commit this file after filling these in: they are secrets.
-#define WIFI_SSID    "your-wifi-name"
-#define WIFI_PASS    "your-wifi-password"
+#define WIFI_SSID    "your-hotspot-name"
+#define WIFI_PASS    "your-hotspot-password"
+
+// The 4 lines from the app (More > Water bottle > Pair a bottle). Paste over just these 4.
 #define SERVER_HOST  "your-app.onrender.com"   // no https:// and no slash
 #define SERVER_PORT  443
 #define USE_TLS      1
 #define DEVICE_TOKEN "gfd_paste-your-pairing-code-here"
+
+#if SEND_TO_APP
+#include <WiFiS3.h>
+#if !defined(WIFI_SSID) || !defined(WIFI_PASS)
+#error "WIFI_SSID / WIFI_PASS are missing. Add them back near the top: #define WIFI_SSID \"your-hotspot-name\" and #define WIFI_PASS \"your-hotspot-password\""
+#endif
 #if USE_TLS
 WiFiSSLClient client;
 #else

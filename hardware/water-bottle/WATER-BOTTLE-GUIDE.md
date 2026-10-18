@@ -139,10 +139,10 @@ If any of that doesn't happen, see **Troubleshooting** at the bottom before movi
 
 ## Step 6: Send sips to the app (20–30 min)
 
-Do this once the app side is merged and live (it's on the `hardware-water-bottle` branch for now).
+The app side is live on main. After a redeploy, pair again (a redeploy wipes pairings).
 
 1. In the app, sign in and go to **More > Water bottle > Pair a bottle**. Copy the four lines it shows.
-2. In `water_bottle.ino`, set `#define SEND_TO_APP 1`, then paste the four lines over the matching ones and fill in `WIFI_SSID` and `WIFI_PASS`. The UNO R4 only joins **2.4 GHz** Wi-Fi. A phone hotspot works well (on iPhone, turn on "Maximise Compatibility").
+2. In `water_bottle.ino`, set `#define SEND_TO_APP 1`. Paste the four lines over **only** the 4 matching lines (`SERVER_HOST`, `SERVER_PORT`, `USE_TLS`, `DEVICE_TOKEN`). Keep the `WIFI_SSID` and `WIFI_PASS` lines and fill them in with your hotspot's name and password. The UNO R4 only joins **2.4 GHz** Wi-Fi. A phone hotspot works well (on iPhone, turn on "Maximise Compatibility").
 3. Upload. Each sip now appears in the app within a few seconds.
 
 **Don't commit the sketch after filling in Wi-Fi and the pairing code.** They're secrets.
@@ -178,6 +178,7 @@ Without Wi-Fi it still counts sips, shows the count and flashes reminders. It ju
 | Sips count when I just pick the bottle up | Raise `TILT_SIP` (e.g. 60) or `MIN_SIP_MS` (e.g. 900) |
 | Laying the bottle down counts as a sip | Lower `MAX_SIP_MS` (e.g. 8000) |
 | Count is wrong after moving the bottle around | Stand it upright and press RESET so it re-learns which way is up |
+| `'WIFI_SSID' was not declared in this scope` | The Wi-Fi lines got deleted when pasting the pairing code. Add `#define WIFI_SSID "your-hotspot-name"` and `#define WIFI_PASS "your-hotspot-password"` back under `#define SEND_TO_APP 1`. |
 | Wi-Fi fails (Step 6) | 2.4 GHz only. Check the name and password; try a phone hotspot. |
 | On a power bank the LEDs turn off after a while | The power bank went to sleep because the board uses so little power. Try another power bank, or one with an "always on" or low-current mode. |
 | "Couldn't reach the app" | The free server sleeps. Open the site in a browser to wake it, wait a minute, then sip again. |
