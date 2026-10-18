@@ -1,0 +1,124 @@
+import Link from "next/link";
+import { DemoSignIn } from "@/components/DemoSignIn";
+import { Icon } from "@/components/Icon";
+import { PublicFooter } from "@/components/public/PublicFooter";
+import { PublicNav } from "@/components/public/PublicNav";
+import { Womby } from "@/components/Womby";
+import { getConfig } from "@/lib/config";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/seed";
+import { currentUser } from "@/lib/session";
+import "../marketing.css";
+
+export const metadata = { title: "Caught early: Walter's story" };
+
+type Who = "patient" | "rule" | "clinician" | "outcome";
+const STEPS: { day: string; who: Who; title: string; body: string }[] = [
+  { day: "Day 1", who: "patient", title: "A new pain medicine", body: "After a hip appointment, Walter starts a new pain medicine. His son logs it as context in Gut Feeling." },
+  { day: "Days 2–4", who: "patient", title: "Things get firmer", body: "His usual smooth type 4s turn into type 2s and a type 1, with straining and discomfort. He isn't drinking much." },
+  { day: "Day 4", who: "rule", title: "First rule fires", body: "Three hard stools within a week trips the “repeated hard stools” rule. It cites the exact entries, and notes the new medicine as timing only." },
+  { day: "Days 5–7", who: "patient", title: "Three quiet days", body: "His son confirms “no movement” three evenings in a row. On day 6: “Says his belly feels hard and full.”" },
+  { day: "Day 7", who: "rule", title: "It reaches the top of the queue", body: "Consecutive confirmed days with nothing raises a second flag. Nurse Priya sees both in her morning review queue, with the evidence one click away." },
+  { day: "Day 8, 9 a.m.", who: "clinician", title: "A phone call, not a wait", body: "Priya calls his son, learns about the medicine and low fluids, and arranges a same-day GP review instead of waiting for next week's visit." },
+  { day: "Days 9–14", who: "outcome", title: "Back to his normal", body: "The GP adjusts his plan. With more water and short walks, Walter is back to type 3s and 4s within days. No emergency visit." },
+];
+
+const LABEL: Record<Who, { text: string; cls: string; icon: string }> = {
+  patient: { text: "Patient-reported", cls: "badge-patient", icon: "user" },
+  rule: { text: "Rule-based flag", cls: "badge-rule", icon: "flag" },
+  clinician: { text: "Clinician action", cls: "badge-clinician", icon: "check" },
+  outcome: { text: "Outcome", cls: "badge-ok", icon: "heart" },
+};
+
+export default async function Story() {
+  const user = await currentUser();
+  const demo = getConfig().seedDemoData;
+  const home = user ? (user.role === "patient" ? "/me" : "/care") : null;
+  return (
+    <div className="mk-page">
+      <div className="mk-top">
+        <PublicNav home={home} homeLabel={user?.role === "patient" ? "Open my diary" : "Open my dashboard"} />
+        <main id="main" className="mk-container" style={{ paddingBottom: "var(--s-12)" }}>
+          <section className="mk-story-head">
+            <div className="stack-3">
+              <span className="badge badge-demo" style={{ width: "fit-content" }}>
+                A fictional demo story · synthetic data
+              </span>
+              <h1>Caught early: Walter&apos;s story</h1>
+              <p className="mk-lede">
+                Severe constipation in older adults can end in an emergency room visit. Here is how a few taps a day gave Walter&apos;s nurse a week&apos;s warning instead of a crisis.
+              </p>
+            </div>
+            <Womby pose="encouraging" size={120} />
+          </section>
+
+          <ol className="mk-story">
+            {STEPS.map((s) => (
+              <li key={s.title} className={`mk-story-step ${s.who}`}>
+                <span className="mk-story-dot" aria-hidden>
+                  <Icon name={LABEL[s.who].icon} size={16} />
+                </span>
+                <div className="mk-story-card">
+                  <div className="row wrap" style={{ gap: 8 }}>
+                    <span className="mk-story-day">{s.day}</span>
+                    <span className={`badge ${LABEL[s.who].cls}`}>{LABEL[s.who].text}</span>
+                  </div>
+                  <h2>{s.title}</h2>
+                  <p>{s.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <section className="mk-story-why">
+            <h2>What made the difference</h2>
+            <ul className="mk-ticks">
+              <li>
+                <span className="mk-tick" aria-hidden>
+                  <Icon name="check" size={14} strokeWidth={2.25} />
+                </span>
+                Logging &ldquo;no movement&rdquo; on purpose, so a quiet day counts as information, not a gap.
+              </li>
+              <li>
+                <span className="mk-tick" aria-hidden>
+                  <Icon name="check" size={14} strokeWidth={2.25} />
+                </span>
+                Simple, visible rules that compare Walter with his own normal and show their evidence.
+              </li>
+              <li>
+                <span className="mk-tick" aria-hidden>
+                  <Icon name="check" size={14} strokeWidth={2.25} />
+                </span>
+                A person making the call. Gemini can explain why a flag fired, but only the nurse decides what happens next.
+              </li>
+            </ul>
+            <p className="small faint">
+              Walter, his son and Priya are made up, and so is every entry. Gut Feeling is a prototype, not a medical device, and doesn&apos;t diagnose anything.
+            </p>
+          </section>
+
+          {demo && (
+            <section className="mk-demo" aria-labelledby="see-it">
+              <div className="stack-3">
+                <h2 id="see-it">See it in the app</h2>
+                <p className="muted" style={{ maxWidth: "46ch" }}>
+                  Walter&apos;s whole diary, the flags and Priya&apos;s review are in the demo. Open it from either side.
+                </p>
+                <Link href="/" className="link-btn small">
+                  <Icon name="back" size={14} /> Back to home
+                </Link>
+              </div>
+              <DemoSignIn
+                password={DEMO_PASSWORD}
+                accounts={[
+                  { label: "I'm Walter", sub: "His diary, on the phone app", email: DEMO_ACCOUNTS.story, kind: "patient" },
+                  { label: "I'm Nurse Priya", sub: "The care-team workspace", email: DEMO_ACCOUNTS.practitioner, kind: "care" },
+                ]}
+              />
+            </section>
+          )}
+        </main>
+      </div>
+      <PublicFooter />
+    </div>
+  );
+}

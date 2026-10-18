@@ -12,6 +12,7 @@ import { Icon } from "@/components/Icon";
 import { getConfig, isGeminiConfigured } from "@/lib/config";
 import { BRISTOL, SYMPTOMS, type Entry } from "@/lib/domain";
 import { AccessError, getPatientOverview } from "@/lib/records";
+import { DEMO_ACCOUNTS } from "@/lib/seed";
 import { requirePage } from "@/lib/session";
 import { DAY, localDay } from "@/lib/time";
 import { flagAnchor, relativeTime } from "@/lib/ui";
@@ -131,6 +132,17 @@ export default async function CarePatient({
             )}
           </div>
         </div>
+        {o.patient.email === DEMO_ACCOUNTS.story && (
+          <div className="story-banner">
+            <Icon name="heart" size={16} />
+            <span className="grow">
+              <strong>Caught early.</strong> The rules flagged Walter&apos;s firmer stools and three quiet days, and a same-day call kept it from becoming an emergency. Fictional demo story.
+            </span>
+            <Link href="/story" className="link-btn small">
+              Read the story <Icon name="arrow" size={14} />
+            </Link>
+          </div>
+        )}
         <nav className="ptabs" aria-label="Patient record">
           {TABS.map((x) => (
             <Link key={x.id} href={x.id === "overview" ? base : `${base}?tab=${x.id}`} aria-current={tab === x.id ? "page" : undefined}>

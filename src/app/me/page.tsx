@@ -10,6 +10,7 @@ import { groupOf } from "@/components/patient/meta";
 import { getConfig } from "@/lib/config";
 import type { DayPoint } from "@/lib/rules/trends";
 import { getPatientOverview, listSharing } from "@/lib/records";
+import { DEMO_ACCOUNTS } from "@/lib/seed";
 import { requirePage } from "@/lib/session";
 import { localDay } from "@/lib/time";
 
@@ -108,6 +109,21 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           </Link>
           <NoMovementButton alreadyLoggedToday={movementToday} alreadyConfirmed={noneToday} />
         </div>
+
+        {user.email === DEMO_ACCOUNTS.story && (
+          <Link href="/story" className="card row" style={{ textDecoration: "none", color: "inherit", gap: "var(--s-3)" }}>
+            <span className="item-icon" style={{ background: "var(--primary)", color: "var(--on-primary)" }}>
+              <Icon name="heart" size={18} />
+            </span>
+            <span className="grow">
+              <span className="item-title" style={{ display: "block" }}>
+                Caught early
+              </span>
+              <span className="item-sub">Last week Priya spotted a pattern in your log and called the same morning. See how it went.</span>
+            </span>
+            <Icon name="chevron" size={18} className="chev" />
+          </Link>
+        )}
 
         <WombyFact start={Math.floor(now.getTime() / 3_600_000)} pose={isEmpty ? "curious" : "encouraging"} />
 

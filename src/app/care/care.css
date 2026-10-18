@@ -1499,3 +1499,19 @@ th[aria-sort="descending"] .sort-btn svg {
   flex-direction: column;
   gap: 6px;
 }
+
+.story-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--primary-soft);
+  color: var(--text);
+  font-size: var(--fs-14);
+}
+.story-banner > svg {
+  color: var(--primary-ink);
+  flex: none;
+}

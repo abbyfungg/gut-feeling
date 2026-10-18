@@ -810,3 +810,121 @@
   flex-wrap: wrap;
   gap: var(--s-3);
 }
+
+/* ---------- caught-early story ---------- */
+.mk-story-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-6);
+  padding: var(--s-10) 0 var(--s-8);
+}
+.mk-story-head h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+.mk-story-head .womby {
+  flex: none;
+}
+@media (max-width: 640px) {
+  .mk-story-head .womby {
+    display: none;
+  }
+}
+.mk-story {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.mk-story::before {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--line-strong);
+}
+.mk-story-step {
+  position: relative;
+  display: flex;
+  gap: var(--s-4);
+  align-items: flex-start;
+}
+.mk-story-dot {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--sky);
+  color: var(--sky-ink);
+  border: 3px solid var(--bg);
+}
+.mk-story-step.rule .mk-story-dot {
+  background: var(--butter);
+  color: var(--butter-ink);
+}
+.mk-story-step.clinician .mk-story-dot {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+.mk-story-step.outcome .mk-story-dot {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.mk-story-card {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s-4) var(--s-5);
+}
+.mk-story-card h2 {
+  font-size: var(--fs-18);
+  margin-top: var(--s-2);
+}
+.mk-story-card p {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+.mk-story-day {
+  font-weight: 700;
+  font-size: var(--fs-13);
+  color: var(--text);
+}
+.mk-story-why {
+  margin: var(--s-10) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.mk-story-why h2 {
+  font-size: var(--fs-24);
+}
+.mk-story-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  font-weight: 600;
+  font-size: var(--fs-14);
+  text-decoration: none;
+}
+.mk-story-link:hover {
+  background: var(--primary-soft-2, var(--primary-soft));
+}

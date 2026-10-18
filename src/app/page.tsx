@@ -86,6 +86,9 @@ export default async function Landing() {
                       Fictional people · synthetic data
                     </span>
                     <h2 id="demo-title">{user ? "Switch to a demo account" : "Try the demo"}</h2>
+                    <Link href="/story" className="mk-story-link">
+                      <Icon name="heart" size={16} /> Read the story: how the app caught Walter&apos;s problem early <Icon name="arrow" size={16} />
+                    </Link>
                     <p className="muted" style={{ maxWidth: "46ch" }}>
                       Look around as a patient or as a nurse, with three weeks of sample entries, patterns to review, and live Gemini photo analysis. These people are made up, and nothing here touches real health records.
                     </p>
@@ -95,6 +98,7 @@ export default async function Landing() {
                     accounts={[
                       { label: "I'm Maya", sub: "Patient view", email: DEMO_ACCOUNTS.patient, kind: "patient" },
                       { label: "I'm Nurse Priya", sub: "Care-team view", email: DEMO_ACCOUNTS.practitioner, kind: "care" },
+                      { label: "I'm Walter", sub: "Caught-early story", email: DEMO_ACCOUNTS.story, kind: "patient" },
                     ]}
                   />
                 </div>
