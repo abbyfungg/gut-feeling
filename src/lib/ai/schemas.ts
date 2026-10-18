@@ -89,3 +89,24 @@ export const summaryResponseSchema = z.object({
   questions_to_ask: z.array(z.string().max(200)).max(6).default([]),
 });
 export type SummaryResponse = z.infer<typeof summaryResponseSchema>;
+
+/** JSON schema for the patient's own "what Gemini noticed" insight. */
+export const insightResponseJsonSchema = {
+  type: "object",
+  properties: {
+    headline: { type: "string", description: "One warm, plain-language sentence about the overall pattern. No diagnosis." },
+    observations: {
+      type: "array",
+      items: { type: "string", description: "One short sentence about a pattern in the entries (timing, type, symptoms, context)." },
+      maxItems: 3,
+    },
+    gentle_tip: { type: "string", description: "One general, everyday wellbeing idea (e.g. keep logging, note meals). Not medical advice." },
+  },
+  required: ["headline", "observations", "gentle_tip"],
+} as const;
+
+export const insightResponseSchema = z.object({
+  headline: z.string().min(1).max(300),
+  observations: z.array(z.string().min(1).max(300)).max(4),
+  gentle_tip: z.string().max(300).default(""),
+});

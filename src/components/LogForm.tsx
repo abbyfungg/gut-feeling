@@ -19,7 +19,7 @@ function toLocalInput(d: Date) {
 }
 
 /** One calm, guided form. Only the shape matters; everything else is optional and "skipped" stays "unknown". */
-export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
+export function LogForm({ aiEnabled, demo = false }: { aiEnabled: boolean; demo?: boolean }) {
   const router = useRouter();
   const [when, setWhen] = useState<"now" | "earlier">("now");
   const nowInput = useMemo(() => toLocalInput(new Date()), []);
@@ -32,6 +32,7 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
   const [ai, setAi] = useState<AiState>({ kind: "idle" });
   const [preview, setPreview] = useState<string | null>(null);
   const [peek, setPeek] = useState(false);
+  const [sample, setSample] = useState<string | null>(null);
   const [qualityTip, setQualityTip] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,15 +63,23 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
     }
   }
 
-  async function analyze(file: File) {
-    const lum = await brightness(file);
-    setQualityTip(lum == null ? null : lum < 45 ? "This photo looks quite dark. Turning on a light usually helps." : lum > 235 ? "This photo looks washed out. Try without the flash." : null);
-    setAi({ kind: "busy" });
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(URL.createObjectURL(file));
-    setPeek(false);
+  async function analyze(input: File | { sample: string }) {
     const fd = new FormData();
-    fd.append("photo", file);
+    if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+    if (input instanceof File) {
+      const lum = await brightness(input);
+      setQualityTip(lum == null ? null : lum < 45 ? "This photo looks quite dark. Turning on a light usually helps." : lum > 235 ? "This photo looks washed out. Try without the flash." : null);
+      setPreview(URL.createObjectURL(input));
+      setSample(null);
+      fd.append("photo", input);
+    } else {
+      setQualityTip(null);
+      setPreview(`/samples/${input.sample}.jpg`);
+      setSample(input.sample);
+      fd.append("sample", input.sample);
+    }
+    setAi({ kind: "busy" });
+    setPeek(false);
     const res = await fetch("/api/analyze", { method: "POST", body: fd }).catch(() => null);
     const body = res ? await res.json().catch(() => ({})) : {};
     if (!res) return setAi({ kind: "error", message: "You seem to be offline, so the photo wasn't sent. Pick the closest type above instead." });
@@ -93,8 +102,9 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
   }
 
   function clearPhoto() {
-    if (preview) URL.revokeObjectURL(preview);
+    if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     setPreview(null);
+    setSample(null);
     setQualityTip(null);
     setAi({ kind: "idle" });
     if (fileRef.current) fileRef.current.value = "";
@@ -219,13 +229,15 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
             {preview ? (
               <div className="row">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview} alt="Your photo, blurred for privacy" className={`photo-thumb${peek ? " peek" : ""}`} />
+                <img src={preview} alt={sample ? "Sample drawing used for the demo" : "Your photo, blurred for privacy"} className={`photo-thumb${peek || sample ? " peek" : ""}`} />
                 <div className="stack-1 grow">
-                  <span className="small muted">Kept only on this screen. Never stored.</span>
+                  <span className="small muted">{sample ? "Demo sample drawing, analysed live by Gemini." : "Kept only on this screen. Never stored."}</span>
                   <div className="row-2 wrap">
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPeek((p) => !p)}>
-                      {peek ? "Blur" : "Peek"}
-                    </button>
+                    {!sample && (
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPeek((p) => !p)}>
+                        {peek ? "Blur" : "Peek"}
+                      </button>
+                    )}
                     <label className="btn btn-ghost btn-sm" style={{ cursor: "pointer" }}>
                       Retake
                       <input
@@ -265,6 +277,26 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
                   }}
                 />
               </label>
+            )}
+            {demo && !preview && (
+              <div className="stack-2">
+                <span className="small muted">No photo handy? Let Gemini analyse a sample drawing:</span>
+                <div className="row-2 wrap">
+                  {[1, 4, 6].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className="sample-btn"
+                      onClick={() => analyze({ sample: `type-${n}` })}
+                      aria-label={`Analyse sample drawing ${n}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/samples/type-${n}.jpg`} alt="" width={96} height={72} />
+                      <span>Sample {n === 1 ? "A" : n === 4 ? "B" : "C"}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
             <div aria-live="polite" className="stack-2">
               {qualityTip && (

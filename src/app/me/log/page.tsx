@@ -6,11 +6,11 @@ import { requirePage } from "@/lib/session";
 export const metadata = { title: "Log a bathroom trip" };
 
 export default async function LogPage() {
-  await requirePage("patient");
+  const user = await requirePage("patient");
   return (
     <main id="main" className="p-main fade-in" style={{ paddingBottom: 0 }}>
       <AppBar title="Log a bathroom trip" back="/me" />
-      <LogForm aiEnabled={isGeminiConfigured()} />
+      <LogForm aiEnabled={isGeminiConfigured()} demo={user.isSynthetic} />
     </main>
   );
 }

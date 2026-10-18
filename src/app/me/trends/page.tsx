@@ -3,9 +3,10 @@ import { AppBar } from "@/components/AppBar";
 import { BristolArt } from "@/components/BristolArt";
 import { Icon } from "@/components/Icon";
 import { Womby } from "@/components/Womby";
+import { AiInsight } from "@/components/patient/AiInsight";
 import { DailyChart, TypeChart } from "@/components/patient/Charts";
 import { SYMPTOM_ICON } from "@/components/patient/meta";
-import { getConfig } from "@/lib/config";
+import { getConfig, isGeminiConfigured } from "@/lib/config";
 import { BRISTOL, symptomLabel, type SymptomId } from "@/lib/domain";
 import { computeTrends } from "@/lib/rules/trends";
 import { listEntries } from "@/lib/records";
@@ -72,6 +73,8 @@ export default async function Trends({ searchParams }: { searchParams: Promise<{
                 </p>
               </div>
             </section>
+
+            <AiInsight key={range} days={range} aiEnabled={isGeminiConfigured()} />
 
             <section className="card stats" aria-label="Key numbers">
               <div>
