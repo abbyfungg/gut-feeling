@@ -7,7 +7,7 @@ if (!key) {
   console.error("GEMINI_API_KEY is not set. The app still works; photo help and AI drafts stay off.");
   process.exit(1);
 }
-const want = process.env.GEMINI_MODEL || "gemini-flash-latest";
+const want = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 const ai = new GoogleGenAI({ apiKey: key });
 const names = [];
 try {
@@ -34,6 +34,6 @@ try {
   });
   console.log("Structured test call reply:", JSON.stringify(res.text?.trim()));
 } catch (e) {
-  console.error(`Test call failed (HTTP ${e?.status ?? "?"}). ${e?.status === 404 ? "Try GEMINI_MODEL=gemini-flash-latest." : e?.status === 400 || e?.status === 403 ? "Check the key is a Gemini API key from Google AI Studio." : ""}`);
+  console.error(`Test call failed (HTTP ${e?.status ?? "?"}). ${e?.status === 404 ? "Try GEMINI_MODEL=gemini-flash-latest (slower)." : e?.status === 400 || e?.status === 403 ? "Check the key is a Gemini API key from Google AI Studio." : ""}`);
   process.exit(1);
 }

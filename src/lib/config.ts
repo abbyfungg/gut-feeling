@@ -1,7 +1,7 @@
 import path from "node:path";
 
 /** Gemini alias that always points at the current Flash release, so a model shutdown doesn't silently break AI features. */
-export const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
+export const DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
 
 /** Dashboard pastes often carry stray whitespace or quotes, which the API rejects as an invalid key. */
 function cleanSecret(v: string | undefined): string {

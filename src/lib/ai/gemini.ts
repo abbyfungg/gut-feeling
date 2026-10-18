@@ -29,8 +29,10 @@ export class AiUnavailableError extends Error {
 }
 
 const DEFAULT_TIMEOUT_MS = 25_000;
-/** Tried in order when the configured model returns 404 (retired, renamed or not enabled for this key). */
-const FALLBACK_MODELS = [DEFAULT_GEMINI_MODEL, "gemini-3.8-flash", "gemini-2.5-flash"];
+/** Tried in order after the configured model. gemini-flash-latest is a slow fallback (about a minute with some keys). */
+const FALLBACK_MODELS = [DEFAULT_GEMINI_MODEL, "gemini-flash-latest", "gemini-2.5-flash"];
+/** Failures where another model might still answer. Auth, safety blocks and bad requests won't change with the model. */
+const TRY_NEXT: ReadonlySet<AiFailureKind> = new Set(["model_unavailable", "server", "timeout", "quota", "network", "invalid_response"]);
 
 /** Gemini 2.x uses thinking budgets; newer models take a thinking level and ignore sampling settings. */
 const isLegacyModel = (m: string) => /^gemini-(1|2)\./.test(m);
@@ -133,12 +135,22 @@ type GenerateContent = (req: Parameters<GoogleGenAI["models"]["generateContent"]
  */
 export function createGeminiModel(configured: string, generate: GenerateContent): JsonModel {
   const candidates = [...new Set([configured, ...FALLBACK_MODELS])];
+  // Where the next call starts. Moves on only when a model is missing for this key (404), not after a slow or busy call.
+  let preferred = 0;
   const model: JsonModel = {
     name: configured,
     async generateJson({ parts, schema, system, timeoutMs = DEFAULT_TIMEOUT_MS }) {
-      const deadline = AbortSignal.timeout(timeoutMs);
+      const start = Date.now();
+      const order = candidates.slice(preferred);
       let last: AiUnavailableError | null = null;
-      for (const name of candidates.slice(candidates.indexOf(model.name) >= 0 ? candidates.indexOf(model.name) : 0)) {
+      for (let i = 0; i < order.length; i++) {
+        const name = order[i];
+        const remaining = timeoutMs - (Date.now() - start);
+        if (i > 0 && remaining < 2000) break;
+        // Leave time for a fallback: the first models get at most 60% of the budget (but at least 8 s).
+        const budget = i === order.length - 1 ? remaining : Math.min(remaining, Math.max(8000, Math.round(timeoutMs * 0.6)));
+        const signal = AbortSignal.timeout(Math.max(1, budget));
+        const t0 = Date.now();
         for (const withThinking of isLegacyModel(name) ? [false] : [true, false]) {
           try {
             const res = await generate({
@@ -148,25 +160,27 @@ export function createGeminiModel(configured: string, generate: GenerateContent)
                 systemInstruction: system,
                 responseMimeType: "application/json",
                 responseJsonSchema: schema,
-                // Short structured answers: low thinking keeps photo checks fast on newer models.
+                // Short structured answers: low thinking keeps calls fast on newer models.
                 ...(isLegacyModel(name) ? { temperature: 0.2 } : withThinking ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : {}),
-                abortSignal: deadline,
+                abortSignal: signal,
               },
             });
             const text = responseText(res);
-            if (name !== model.name) console.warn(`[ai] using fallback model ${name} (configured ${configured} unavailable)`);
+            if (name !== configured) console.warn(`[ai] answered by fallback model=${name} (configured ${configured}) ms=${Date.now() - t0}`);
             model.name = name;
             return text;
           } catch (e) {
             last = classifyAiError(e);
             // Some models reject thinking settings; retry the same model once without them.
             if (last.kind === "bad_request" && withThinking && /thinking/i.test(apiErrorParts(e).text)) continue;
+            console.warn(`[ai] model=${name} failed: kind=${last.kind} status=${last.httpStatus ?? "-"} ms=${Date.now() - t0}`);
             break;
           }
         }
-        if (last?.kind !== "model_unavailable" || deadline.aborted) throw last;
+        if (!last || !TRY_NEXT.has(last.kind)) throw last ?? new AiUnavailableError("Model call failed");
+        if (last.kind === "model_unavailable" && preferred === candidates.indexOf(name) && i < order.length - 1) preferred++;
       }
-      throw last ?? new AiUnavailableError("Model call failed");
+      throw last ?? new AiUnavailableError("Model call timed out", "timeout");
     },
   };
   return model;

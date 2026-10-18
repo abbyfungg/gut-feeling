@@ -74,7 +74,7 @@ describe("AI unavailable fallback", () => {
     expect(getConfig().geminiApiKey).toBe("");
   });
   it("defaults to a current model alias and strips a models/ prefix", () => {
-    expect(getConfig().geminiModel).toBe("gemini-flash-latest");
+    expect(getConfig().geminiModel).toBe("gemini-3.6-flash");
     process.env.GEMINI_MODEL = "models/gemini-3.8-flash ";
     expect(getConfig().geminiModel).toBe("gemini-3.8-flash");
   });
@@ -139,11 +139,28 @@ describe("Gemini over the real SDK (fetch stubbed)", () => {
     );
     const r = await analyzePhoto(model, jpeg);
     expect(r.status).toBe("ok");
-    expect(r.result.model).toBe("gemini-flash-latest");
-    expect(calls.map((c) => c.url.split("/models/")[1])).toEqual(["gemini-2.0-flash:generateContent", "gemini-flash-latest:generateContent"]);
+    expect(r.result.model).toBe("gemini-3.6-flash");
+    expect(calls.map((c) => c.url.split("/models/")[1])).toEqual(["gemini-2.0-flash:generateContent", "gemini-3.6-flash:generateContent"]);
     await analyzePhoto(model, jpeg);
     expect(calls).toHaveLength(3);
-    expect(calls[2].url).toContain("gemini-flash-latest");
+    expect(calls[2].url).toContain("gemini-3.6-flash");
+  });
+
+  it("falls back to gemini-flash-latest when the default model errors, but tries the default first next time", async () => {
+    const { calls, model } = sdkModel("gemini-3.6-flash", (c) =>
+      c.url.includes("gemini-3.6-flash") ? reply(503, apiError(503, "UNAVAILABLE", "The model is overloaded.")) : reply(200, candidate(JSON.stringify(ok))),
+    );
+    const r = await analyzePhoto(model, jpeg);
+    expect(r.status).toBe("ok");
+    expect(r.result.model).toBe("gemini-flash-latest");
+    await analyzePhoto(model, jpeg);
+    expect(calls.map((c) => c.url.split("/models/")[1].split(":")[0])).toEqual(["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.6-flash", "gemini-flash-latest"]);
+  });
+
+  it("does not try other models when the key is rejected", async () => {
+    const { calls, model } = sdkModel("gemini-3.6-flash", () => reply(400, apiError(400, "INVALID_ARGUMENT", "API key not valid.", "API_KEY_INVALID")));
+    expect((await analyzePhoto(model, jpeg).catch((e) => e)).kind).toBe("auth");
+    expect(calls).toHaveLength(1);
   });
 
   it("legacy 2.x models get temperature instead of a thinking level", async () => {

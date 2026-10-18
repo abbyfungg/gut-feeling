@@ -63,7 +63,7 @@ Copy `.env.example` to `.env.local`. Everything is optional.
 | Variable | Default | Purpose |
 |---|---|---|
 | `GEMINI_API_KEY` | empty | Turns on photo analysis and AI handoff drafts. Server-side only. |
-| `GEMINI_MODEL` | `gemini-flash-latest` | Any multimodal Gemini model your key can use. |
+| `GEMINI_MODEL` | `gemini-3.6-flash` | Any multimodal Gemini model your key can use. Falls back to `gemini-flash-latest` if it fails. |
 | `DATA_DIR` | `./data` | Folder for the SQLite file. Must be persistent when hosted. |
 | `SEED_DEMO_DATA` | `true` | Seed fictional data into an empty database and show demo sign-in buttons. |
 | `APP_TIMEZONE` | `America/Toronto` | Timezone used to group entries into days. |
