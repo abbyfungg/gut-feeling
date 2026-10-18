@@ -5,7 +5,7 @@
   The accelerometer is taped to the bottle. When you tip the bottle to drink and put it back
   upright, that counts as one sip. Sips x ML_PER_SIP gives an ESTIMATE of how much you drank
   (calibrate it, see the guide). The red LED grid shows your sip count. If you go REMIND_MS
-  without a sip, the buzzer beeps three times to remind you to drink.
+  without a sip, the water drop flashes on the LED grid to remind you to drink.
 
   Step 1: run it with SEND_TO_APP 0 (the default). Everything works without Wi-Fi.
   Step 2 (later, once the app side is ready): set SEND_TO_APP 1 and fill in the Wi-Fi lines.
@@ -17,7 +17,6 @@
 #include "Arduino_LED_Matrix.h"
 
 // ---------------- Settings you can change ----------------
-#define BUZZER_PIN    6        // Grove buzzer yellow wire on D6
 #define ML_PER_SIP    30       // average ml per sip. Calibrate: see the guide.
 #define TILT_SIP      50       // degrees: tipping past this starts a sip
 #define TILT_UPRIGHT  25       // degrees: coming back under this ends it
@@ -96,9 +95,7 @@ bool readG(float& x, float& y, float& z) {
   }
 }
 
-// ---------------- Buzzer and LED grid ----------------
-void beep(int ms) { digitalWrite(BUZZER_PIN, HIGH); delay(ms); digitalWrite(BUZZER_PIN, LOW); }
-
+// ---------------- LED grid ----------------
 // 3x5 digits for the sip count
 const uint8_t DIGITS[10][5] = {
   {7, 5, 5, 5, 7}, {2, 6, 2, 2, 7}, {7, 1, 7, 4, 7}, {7, 1, 7, 1, 7}, {5, 5, 7, 1, 1},
@@ -121,6 +118,19 @@ const char* DROP[8] = {".....##.....", "....####....", "...######...", "..######
 void showDrop() {
   for (int r = 0; r < 8; r++) for (int c = 0; c < 12; c++) frame[r][c] = DROP[r][c] == '#';
   matrix.renderBitmap(frame, 8, 12);
+}
+// Big X = something is wrong (accelerometer not found)
+void showError() {
+  clearFrame();
+  for (int i = 0; i < 8; i++) { frame[i][i + 2] = 1; frame[i][9 - i] = 1; }
+  matrix.renderBitmap(frame, 8, 12);
+}
+// Flash the drop a few times (the reminder)
+void flashDrop(int times) {
+  for (int i = 0; i < times; i++) {
+    showDrop(); delay(400);
+    clearFrame(); matrix.renderBitmap(frame, 8, 12); delay(300);
+  }
 }
 
 // ---------------- Sending (only when SEND_TO_APP is 1) ----------------
@@ -183,7 +193,6 @@ float tiltDegrees(float x, float y, float z) {
 void setup() {
   Serial.begin(115200);
   delay(1500);
-  pinMode(BUZZER_PIN, OUTPUT);
   matrix.begin();
   Wire.begin();
   showDrop();
@@ -191,13 +200,13 @@ void setup() {
   findAccel();
   if (accel == ACC_NONE) {
     Serial.println("Accelerometer not found. Check: black GND, red 5V, white SDA, yellow SCL. Run bottle_test first.");
-    while (true) { beep(400); delay(3000); }
+    showError();  // a big X on the LED grid
+    while (true) delay(1000);
   }
 #if SEND_TO_APP
   connectWifi();
 #endif
   calibrate();
-  beep(60);
   lastSipAt = lastRemind = millis();
   showCount(0);
 }
@@ -222,7 +231,6 @@ void loop() {
           sips++;
           pendingSips++;
           lastSipAt = lastRemind = now;
-          beep(30);
           Serial.print("Sip #"); Serial.print(sips);
           Serial.print(" (held "); Serial.print(held / 1000.0, 1);
           Serial.print(" s). Estimated total: "); Serial.print(sips * ML_PER_SIP); Serial.println(" ml");
@@ -234,13 +242,11 @@ void loop() {
     }
   }
 
-  // Reminder: three short beeps if you haven't had a sip in a while.
+  // Reminder: flash the water drop if you haven't had a sip in a while.
   if (!tipped && now - lastSipAt >= REMIND_MS && now - lastRemind >= REMIND_MS) {
     lastRemind = now;
     Serial.println("Reminder: time for a sip of water.");
-    showDrop();
-    for (int i = 0; i < 3; i++) { beep(120); delay(150); }
-    delay(800);
+    flashDrop(5);
     showCount(sips);
   }
 

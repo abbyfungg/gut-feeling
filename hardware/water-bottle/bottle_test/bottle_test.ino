@@ -3,7 +3,7 @@
   Board: Arduino UNO R4 WiFi
 
   What it does:
-    1. Beeps the buzzer once and lights a few LEDs, so you know both work.
+    1. Lights the 4 corner LEDs of the red grid, so you know the display works.
     2. Looks for the accelerometer and tells you which kind it found.
     3. Prints the tilt of the bottle 5 times a second.
 
@@ -15,8 +15,6 @@
 
 #include <Wire.h>
 #include "Arduino_LED_Matrix.h"
-
-#define BUZZER_PIN 6
 
 ArduinoLEDMatrix matrix;
 uint8_t frame[8][12];
@@ -76,12 +74,8 @@ float restX, restY, restZ;
 void setup() {
   Serial.begin(115200);
   delay(1500);
-  pinMode(BUZZER_PIN, OUTPUT);
   matrix.begin();
   Wire.begin();
-
-  Serial.println("Buzzer test: you should hear a short beep.");
-  digitalWrite(BUZZER_PIN, HIGH); delay(200); digitalWrite(BUZZER_PIN, LOW);
 
   Serial.println("LED test: the 4 corners of the red grid should light up.");
   frame[0][0] = frame[0][11] = frame[7][0] = frame[7][11] = 1;
