@@ -109,7 +109,7 @@ export function summaryFailureMessage(kind: AiFailureKind): string {
 }
 
 /** Server-side diagnostics only: kind, status and model. Never photos, notes, prompts, responses or the key. */
-export function logAiFailure(task: "photo" | "summary" | "insight" | "explain", model: string, err: AiUnavailableError, ms: number) {
+export function logAiFailure(task: "photo" | "summary" | "insight" | "explain" | "water", model: string, err: AiUnavailableError, ms: number) {
   console.warn(`[ai] ${task} failed: kind=${err.kind} status=${err.httpStatus ?? "-"} model=${model} ms=${ms}`);
 }
 

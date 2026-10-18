@@ -147,3 +147,42 @@ export const flagExplainSchema = z.object({
   signals: z.array(z.object({ entry_id: z.string(), why_it_matters: z.string().min(1).max(240) })).max(10),
   worth_checking: z.string().max(300).default(""),
 });
+
+/** JSON schema for Gemini relating someone's water intake to their stool pattern. */
+export const waterInsightJsonSchema = {
+  type: "object",
+  properties: {
+    headline: { type: "string", description: "One plain sentence on how their water intake and stool pattern line up this week. No diagnosis." },
+    explanation: {
+      type: "string",
+      description: "2-3 plain sentences relating the timing and amount of water to the stool entries (e.g. less water in the afternoons, harder stools the next day; or plenty of water but still hard). Tentative words like 'may'. No cause or diagnosis.",
+    },
+    data_points: {
+      type: "array",
+      maxItems: 5,
+      items: {
+        type: "object",
+        properties: {
+          ref: { type: "string", description: "Exactly one id as given: a stool entry id, or a water day id like water:2026-10-17." },
+          observation: { type: "string", description: "One short clause on what that entry or day shows." },
+        },
+        required: ["ref", "observation"],
+      },
+    },
+    suggestions: {
+      type: "array",
+      maxItems: 3,
+      items: { type: "string", description: "One practical, everyday, non-medical suggestion that fits the data (timing of drinks, fibre, movement, routine, asking a pharmacist about a medicine). Never tell them to stop or change a medicine." },
+    },
+    contact_clinician: { type: "string", description: "One calm sentence on when to contact their nurse or doctor, based on this data." },
+  },
+  required: ["headline", "explanation", "data_points", "suggestions", "contact_clinician"],
+} as const;
+
+export const waterInsightSchema = z.object({
+  headline: z.string().min(1).max(300),
+  explanation: z.string().min(1).max(900),
+  data_points: z.array(z.object({ ref: z.string().max(80), observation: z.string().min(1).max(240) })).max(8),
+  suggestions: z.array(z.string().min(1).max(260)).min(1).max(4),
+  contact_clinician: z.string().min(1).max(320),
+});

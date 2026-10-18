@@ -1,4 +1,5 @@
 import { WeekBars } from "@/components/patient/WaterPanel";
+import { WaterInsight } from "@/components/WaterInsight";
 import { fluidDays } from "@/lib/fluids";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -273,6 +274,7 @@ export default async function CarePatient({
                           ? "Estimated from sip counts on the patient's water bottle. Can be off."
                           : "Glasses the patient added themselves."}
                     </p>
+                    <WaterInsight endpoint={`/api/care/patients/${o.patient.id}/water-insight`} aiEnabled={isGeminiConfigured()} audience="care" />
                   </div>
                 </section>
               )}

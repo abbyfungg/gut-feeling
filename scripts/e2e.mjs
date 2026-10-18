@@ -262,6 +262,14 @@ const stamp = `e2e note ${Date.now()}`;
   await page.locator(".badge", { hasText: "From your bottle" }).first().waitFor({ timeout: 6000 }).catch(() => {});
   check(await page.locator(".badge", { hasText: "From your bottle" }).first().isVisible(), "bottle sips show up live, labelled as an estimate");
   await shot(page, "61-water");
+  check((await page.getByText(/Gemini/).count()) > 0, "water screen has the Gemini water panel (or its not-configured note)");
+  {
+    const r = await page.request.post(BASE + "/api/hydration/insight", { data: {} });
+    const b = await r.json().catch(() => ({}));
+    check([200, 503].includes(r.status()) && ["ok", "unconfigured", "too_few"].includes(b.status), `patient water insight answers cleanly (got ${r.status()} ${b.status})`);
+    const other = await page.request.post(`${BASE}/api/care/patients/${idOf("nora@demo.gutfeeling.health")}/water-insight`, { data: {} });
+    check([401, 403].includes(other.status()), `patients can't use the care water insight (got ${other.status()})`);
+  }
   await page.getByRole("button", { name: "Unpair" }).click();
   await page.waitForTimeout(400);
   check((await send({ sips: 1 })).status === 401, "unpaired bottle code stops working");
@@ -277,6 +285,11 @@ const stamp = `e2e note ${Date.now()}`;
   check((await n.page.getByText("Hard stools despite adequate fluid intake").count()) > 0, "care side shows the hard-despite-fluids flag");
   check(await n.page.getByRole("heading", { name: "Fluids, last 7 days" }).isVisible(), "care side shows the patient's fluids");
   await shot(n.page, "62-care-nora");
+  {
+    const r = await n.page.request.post(`${BASE}/api/care/patients/${idOf("nora@demo.gutfeeling.health")}/water-insight`, { data: {} });
+    const b = await r.json().catch(() => ({}));
+    check([200, 503].includes(r.status()) && ["ok", "unconfigured", "too_few"].includes(b.status), `care water insight answers cleanly (got ${r.status()} ${b.status})`);
+  }
   await n.ctx.close();
 }
 

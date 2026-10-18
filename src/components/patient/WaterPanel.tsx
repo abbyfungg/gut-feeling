@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 
 type Source = "bottle" | "manual" | "simulated";
@@ -50,7 +50,7 @@ export function WeekBars({ week, today }: { week: Day[]; today: string }) {
   );
 }
 
-export function WaterPanel({ initial, initialPairing, today }: { initial: Today; initialPairing: Pairing; today: string }) {
+export function WaterPanel({ initial, initialPairing, today, insight }: { initial: Today; initialPairing: Pairing; today: string; insight?: ReactNode }) {
   const [t, setT] = useState(initial);
   const [pairing, setPairing] = useState(initialPairing);
   const [newToken, setNewToken] = useState<NewToken | null>(null);
@@ -119,6 +119,8 @@ export function WaterPanel({ initial, initialPairing, today }: { initial: Today;
         </button>
         <p className="tiny muted">Bottle amounts are estimates: each sip counts as about 30 ml. A glass you add yourself counts as 250 ml.</p>
       </section>
+
+      {insight}
 
       <section className="card stack-3" aria-labelledby="sim-h">
         <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
