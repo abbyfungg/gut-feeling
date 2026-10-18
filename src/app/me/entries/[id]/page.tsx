@@ -7,6 +7,7 @@ import { CONTEXT_ICON, SYMPTOM_ICON } from "@/components/patient/meta";
 import { getConfig } from "@/lib/config";
 import { bristolInfo, contextLabel, symptomLabel, type Entry } from "@/lib/domain";
 import { getEntry } from "@/lib/records";
+import { EffortSummary } from "@/components/patient/Effort";
 import { requirePage } from "@/lib/session";
 import { formatDateTime } from "@/lib/time";
 
@@ -40,6 +41,7 @@ export default async function EntryDetail({ params }: { params: Promise<{ id: st
   const ai = e.ai;
   const aiInfo = bristolInfo(ai?.estimatedType ?? null);
   const corrected = e.bristolSource === "ai_corrected";
+  const effort = e.effort;
 
   return (
     <main id="main" className="p-main fade-in">
@@ -124,6 +126,15 @@ export default async function EntryDetail({ params }: { params: Promise<{ id: st
             </Row>
           )}
         </section>
+
+        {effort && (
+          <section className="card stack-2" aria-labelledby="effort-h">
+            <h2 id="effort-h" style={{ fontSize: "var(--fs-18)" }}>
+              Squeeze effort
+            </h2>
+            <EffortSummary s={effort} />
+          </section>
+        )}
 
         {ai && (
           <section className="ai-panel stack-3" aria-labelledby="ai-h">

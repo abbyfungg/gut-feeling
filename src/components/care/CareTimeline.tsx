@@ -88,6 +88,15 @@ export function CareEntry({ e, timeZone, evidence, focus, reviewed, idPrefix }: 
             </span>
           </div>
         )}
+        {e.effort && (
+          <p className="ct-ai">
+            <Icon name="activity" size={14} />
+            <span>
+              Squeeze effort {e.effort.source === "simulated" ? "(simulated, not device data)" : "(squeeze ball)"}: peak {e.effort.peakEffort}/100 over {Math.round(e.effort.durationMs / 1000)} s,{" "}
+              {e.effort.squeezes} {e.effort.squeezes === 1 ? "squeeze" : "squeezes"}. Patient comfort log, not a measure of straining.
+            </span>
+          </p>
+        )}
         {e.notes && <p className="ct-note">&ldquo;{e.notes}&rdquo;</p>}
       </div>
     </li>

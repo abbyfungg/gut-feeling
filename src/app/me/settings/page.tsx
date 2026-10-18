@@ -6,6 +6,7 @@ import { InstallApp } from "@/components/InstallApp";
 import { SignOutButton } from "@/components/SignOutButton";
 import { ThemePicker } from "@/components/ThemePicker";
 import { isGeminiConfigured } from "@/lib/config";
+import { getPairing } from "@/lib/device";
 import { listSharing } from "@/lib/records";
 import { requirePage } from "@/lib/session";
 
@@ -32,6 +33,7 @@ export default async function Settings() {
   const user = await requirePage("patient");
   const active = listSharing(user).filter((s) => s.status === "active");
   const ai = isGeminiConfigured();
+  const pairing = getPairing(user);
   return (
     <main id="main" className="p-main fade-in">
       <AppBar title="More" large />
@@ -74,6 +76,7 @@ export default async function Settings() {
               sub={active.length ? `Shared with ${active.map((s) => s.practitioner.name).join(" and ")}` : "Private to you"}
               tint="sky"
             />
+            <LinkItem href="/me/device" icon="activity" title="Squeeze ball" sub={pairing.paired ? "Paired · log squeeze effort automatically" : "Track squeeze effort, or try the simulator"} tint="lavender" />
             <LinkItem href="/me/visit" icon="clipboard" title="Visit notes" sub="A printable two-week summary" tint="peach" />
             <LinkItem
               href="/privacy"

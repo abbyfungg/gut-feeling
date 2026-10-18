@@ -3,7 +3,7 @@ import { getConfig } from "./config";
 import { getDb, transaction } from "./db";
 import type { User } from "./auth";
 import { newId } from "./auth";
-import type { Entry, StoredAiAnalysis } from "./domain";
+import type { Entry, EntryEffort, StoredAiAnalysis } from "./domain";
 import { decisionLabel, REVIEW_DECISIONS } from "./domain";
 import { evaluateRules } from "./rules/engine";
 import type { DataNotice, Flag } from "./rules/types";
@@ -79,11 +79,34 @@ function toEntry(r: EntryRow): Entry {
   };
 }
 
+type EffortRow = { entry_id: string; source: EntryEffort["source"]; started_at: string; ended_at: string | null; last_reading_at: string; peak_effort: number; effort_sum: number; reading_count: number; squeezes: number; samples: string };
+
+/** Squeeze-ball sessions attached to entries, keyed by entry id. */
+function effortFor(patientId: string, entryId?: string): Map<string, EntryEffort> {
+  const rows = getDb()
+    .prepare(`SELECT * FROM device_sessions WHERE patient_id = ? AND status = 'attached' AND entry_id IS NOT NULL${entryId ? " AND entry_id = ?" : ""}`)
+    .all(...(entryId ? [patientId, entryId] : [patientId])) as EffortRow[];
+  return new Map(
+    rows.map((r) => [
+      r.entry_id,
+      {
+        source: r.source,
+        peakEffort: r.peak_effort,
+        avgEffort: r.reading_count ? Math.round(r.effort_sum / r.reading_count) : 0,
+        durationMs: Math.max(0, new Date(r.ended_at ?? r.last_reading_at).getTime() - new Date(r.started_at).getTime()),
+        squeezes: r.squeezes,
+        samples: JSON.parse(r.samples),
+      },
+    ]),
+  );
+}
+
 function loadEntries(patientId: string): Entry[] {
   const rows = getDb()
     .prepare("SELECT * FROM entries WHERE patient_id = ? ORDER BY occurred_at DESC")
     .all(patientId) as EntryRow[];
-  return rows.map(toEntry);
+  const effort = effortFor(patientId);
+  return rows.map((r) => ({ ...toEntry(r), effort: effort.get(r.id) ?? null }));
 }
 
 export function listEntries(viewer: User, patientId: string): Entry[] {
@@ -95,7 +118,7 @@ export function getEntry(viewer: User, entryId: string): Entry {
   const row = getDb().prepare("SELECT * FROM entries WHERE id = ?").get(entryId) as EntryRow | undefined;
   if (!row) throw new AccessError();
   assertCanViewPatient(viewer, row.patient_id);
-  return toEntry(row);
+  return { ...toEntry(row), effort: effortFor(row.patient_id, row.id).get(row.id) ?? null };
 }
 
 /** Only the patient can log to their own diary. */

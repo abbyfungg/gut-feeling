@@ -82,6 +82,38 @@ CREATE TABLE IF NOT EXISTS reviews (
   completed_at TEXT
 );
 CREATE INDEX IF NOT EXISTS reviews_patient ON reviews(patient_id, flag_key);
+
+-- Squeeze-ball pairing. Only a hash of the device token is stored; the patient sees the token once.
+CREATE TABLE IF NOT EXISTS device_tokens (
+  id TEXT PRIMARY KEY,
+  patient_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL,
+  last_seen_at TEXT,
+  revoked_at TEXT
+);
+
+-- One squeeze session (from the real ball or the in-app simulator). Effort is 0-100 squeeze effort,
+-- a personal comfort log, not a clinical measure. A finished session waits as a draft until the
+-- patient attaches it to an entry or discards it.
+CREATE TABLE IF NOT EXISTS device_sessions (
+  id TEXT PRIMARY KEY,
+  patient_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  source TEXT NOT NULL CHECK (source IN ('device','simulated')),
+  device_key TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('live','ended','attached','dismissed')),
+  started_at TEXT NOT NULL,
+  last_reading_at TEXT NOT NULL,
+  ended_at TEXT,
+  peak_effort INTEGER NOT NULL DEFAULT 0,
+  effort_sum INTEGER NOT NULL DEFAULT 0,
+  reading_count INTEGER NOT NULL DEFAULT 0,
+  last_effort INTEGER NOT NULL DEFAULT 0,
+  squeezes INTEGER NOT NULL DEFAULT 0,
+  samples TEXT NOT NULL DEFAULT '[]',
+  entry_id TEXT REFERENCES entries(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS device_sessions_patient ON device_sessions(patient_id, status, last_reading_at);
 `;
 
 type G = typeof globalThis & { __gutDb?: DatabaseSync; __gutDbFile?: string };

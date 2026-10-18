@@ -19,7 +19,10 @@ function toLocalInput(d: Date) {
 }
 
 /** One calm, guided form. Only the shape matters; everything else is optional and "skipped" stays "unknown". */
-export function LogForm({ aiEnabled, demo = false }: { aiEnabled: boolean; demo?: boolean }) {
+export type SqueezeDraft = { id: string; source: "device" | "simulated"; peakEffort: number; durationMs: number; squeezes: number; startedAt: string };
+
+export function LogForm({ aiEnabled, demo = false, squeeze = null }: { aiEnabled: boolean; demo?: boolean; squeeze?: SqueezeDraft | null }) {
+  const [attachSqueeze, setAttachSqueeze] = useState(!!squeeze);
   const router = useRouter();
   const [when, setWhen] = useState<"now" | "earlier">("now");
   const nowInput = useMemo(() => toLocalInput(new Date()), []);
@@ -128,6 +131,7 @@ export function LogForm({ aiEnabled, demo = false }: { aiEnabled: boolean; demo?
         bloodReport: blood,
         notes: notes.trim() || null,
         ai: aiRef,
+        ...(squeeze && attachSqueeze ? { deviceSessionId: squeeze.id } : {}),
       }),
     }).catch(() => null);
     const body = res ? await res.json().catch(() => ({})) : {};
@@ -156,6 +160,26 @@ export function LogForm({ aiEnabled, demo = false }: { aiEnabled: boolean; demo?
       }}
       aria-label="Log a bathroom trip"
     >
+      {squeeze && (
+        <section className="log-section" aria-labelledby="sec-squeeze">
+          <header>
+            <h2 id="sec-squeeze">Squeeze effort</h2>
+            <span className="optional">{squeeze.source === "device" ? "From your squeeze ball" : "Simulated"}</span>
+          </header>
+          <label className="row" style={{ gap: 10, alignItems: "flex-start", cursor: "pointer" }}>
+            <input type="checkbox" checked={attachSqueeze} onChange={(e) => setAttachSqueeze(e.target.checked)} style={{ marginTop: 3 }} />
+            <span className="stack-1">
+              <span className="strong">
+                Attach this session: peak {squeeze.peakEffort}, {Math.round(squeeze.durationMs / 1000)} s, {squeeze.squeezes} {squeeze.squeezes === 1 ? "squeeze" : "squeezes"}
+              </span>
+              <span className="tiny muted">
+                {squeeze.source === "simulated" ? "Made with the in-app simulator, not a real device. " : ""}Squeeze effort is a comfort log, not a measure of straining.
+              </span>
+            </span>
+          </label>
+        </section>
+      )}
+
       <section className="log-section" aria-labelledby="sec-when">
         <header>
           <h2 id="sec-when">When</h2>

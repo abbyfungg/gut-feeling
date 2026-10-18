@@ -93,8 +93,19 @@ export interface Entry {
   bloodReport: BloodReport | null;
   notes: string | null;
   ai: StoredAiAnalysis | null;
+  /** Squeeze-ball session attached by the patient (0-100 squeeze effort, not a clinical measure). */
+  effort?: EntryEffort | null;
   isSynthetic: boolean;
   createdAt: string;
+}
+
+export interface EntryEffort {
+  source: "device" | "simulated";
+  peakEffort: number;
+  avgEffort: number;
+  durationMs: number;
+  squeezes: number;
+  samples: number[];
 }
 
 export const REVIEW_DECISIONS = [

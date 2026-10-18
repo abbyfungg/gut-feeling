@@ -212,6 +212,78 @@ const stamp = `e2e note ${Date.now()}`;
   await n.ctx.close();
 }
 
+// ---- Squeeze ball: pairing, device readings, draft entry, simulator, care timeline ----
+{
+  const { ctx, page } = await newPage();
+  await page.goto(BASE + "/signin");
+  await page.getByLabel("Email").fill("maya@demo.gutfeeling.health");
+  await page.getByLabel("Password").fill("everybodypoops");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.waitForURL("**/me");
+  await page.goto(BASE + "/me/device");
+  await page.getByRole("button", { name: /Pair a squeeze ball|Make a new pairing code/ }).click();
+  const code = await page.locator(".pair-code").textContent({ timeout: 5000 });
+  const token = code?.match(/gfd_[A-Za-z0-9_-]+/)?.[0];
+  check(!!token, "pairing shows a device code once");
+  await shot(page, "40-device-paired");
+
+  const ingest = (body, t = token) =>
+    fetch(BASE + "/api/device/ingest", { method: "POST", headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  check((await ingest({ session: "e2e1", readings: [10] }, "gfd_" + "z".repeat(32))).status === 401, "unknown device code rejected (401)");
+  check((await ingest({ session: "e2e1", readings: [500] })).status === 400, "out-of-range reading rejected (400)");
+  const r1 = await ingest({ session: "e2e1", readings: [0, 25, 62, 78, 70], squeezes: 1 });
+  check(r1.status === 200, `device readings accepted (${r1.status})`);
+  await page.locator(".badge", { hasText: "From the squeeze ball" }).first().waitFor({ timeout: 5000 }).catch(() => {});
+  check(await page.locator(".badge", { hasText: "From the squeeze ball" }).first().isVisible(), "live screen shows device data, labelled as the squeeze ball");
+  await shot(page, "41-device-live");
+  await ingest({ session: "e2e1", readings: [40, 0, 0], squeezes: 2, done: true });
+  await page.getByRole("heading", { name: "Session ready to log" }).waitFor({ timeout: 5000 }).catch(() => {});
+  check(await page.getByRole("heading", { name: "Session ready to log" }).isVisible(), "finished session becomes a draft to log");
+  await page.getByRole("link", { name: /Log this trip/ }).click();
+  await page.waitForURL("**/me/log?squeeze=*");
+  check(await page.getByRole("checkbox", { name: /Attach this session: peak 78/ }).isChecked(), "log form attaches the squeeze session");
+  await shot(page, "42-log-with-squeeze");
+  await page.getByRole("radio", { name: /Type 3,/ }).check({ force: true });
+  await page.getByRole("button", { name: "Save entry" }).click();
+  await page.waitForURL("**/me/saved?id=*");
+  const entryId = new URL(page.url()).searchParams.get("id");
+  await page.goto(`${BASE}/me/entries/${entryId}`);
+  check(await page.getByRole("heading", { name: "Squeeze effort" }).isVisible(), "entry shows squeeze effort");
+  await shot(page, "43-entry-effort");
+
+  await page.goto(BASE + "/me/device");
+  const btn = page.getByRole("button", { name: /Hold to squeeze/ });
+  const box = await btn.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(1500);
+  const held = Number((await page.locator(".effort-big").textContent())?.match(/\d+/)?.[0] ?? 0);
+  await shot(page, "44-simulator");
+  await page.mouse.up();
+  check(held > 20, `simulator raises effort while held (${held})`);
+  check(await page.locator(".card").first().locator(".badge", { hasText: "Simulated" }).isVisible(), "simulated readings are labelled as simulated");
+  await page.getByRole("button", { name: "Finish session" }).click();
+  await page.getByRole("heading", { name: "Session ready to log" }).waitFor({ timeout: 5000 }).catch(() => {});
+  check(await page.locator(".card-sage .badge", { hasText: "Simulated" }).isVisible(), "simulated draft stays labelled as simulated");
+  await page.getByRole("button", { name: "Discard" }).click();
+  await page.getByRole("heading", { name: "Session ready to log" }).waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
+  check(!(await page.getByRole("heading", { name: "Session ready to log" }).isVisible()), "draft can be discarded");
+  await page.getByRole("button", { name: "Unpair" }).click();
+  await page.waitForTimeout(500);
+  check((await ingest({ session: "e2e2", readings: [10] })).status === 401, "unpaired device code stops working");
+  await ctx.close();
+
+  const n = await newPage();
+  await n.page.goto(BASE + "/signin");
+  await n.page.getByLabel("Email").fill("priya@demo.gutfeeling.health");
+  await n.page.getByLabel("Password").fill("everybodypoops");
+  await n.page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await n.page.waitForURL("**/care");
+  await n.page.goto(`${BASE}/care/patients/${idOf("maya@demo.gutfeeling.health")}?tab=timeline`);
+  check((await n.page.getByText(/Squeeze effort \(squeeze ball\): peak 78/).count()) > 0, "care timeline shows the patient's squeeze effort");
+  await n.ctx.close();
+}
+
 // ---- Installable app + signed-out access ----
 {
   const { ctx, page } = await newPage();

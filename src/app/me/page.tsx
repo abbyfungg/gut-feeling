@@ -8,6 +8,8 @@ import { WombyFact } from "@/components/WombyFact";
 import { EntryList } from "@/components/patient/EntryList";
 import { groupOf } from "@/components/patient/meta";
 import { getConfig } from "@/lib/config";
+import { pendingSession } from "@/lib/device";
+import { formatDuration } from "@/components/patient/Effort";
 import type { DayPoint } from "@/lib/rules/trends";
 import { getPatientOverview, listSharing } from "@/lib/records";
 import { DEMO_ACCOUNTS } from "@/lib/seed";
@@ -69,6 +71,7 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
   const weekLogs = weekEntries.filter((e) => e.kind === "movement").length;
   const weekSymptoms = weekEntries.reduce((n, e) => n + (e.symptoms?.length ?? 0), 0);
   const isEmpty = o.entries.length === 0;
+  const squeeze = pendingSession(user, now);
 
   const sub = isEmpty
     ? "Welcome in. Your first log takes about ten seconds."
@@ -109,6 +112,23 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           </Link>
           <NoMovementButton alreadyLoggedToday={movementToday} alreadyConfirmed={noneToday} />
         </div>
+
+        {squeeze && (
+          <Link href={`/me/log?squeeze=${encodeURIComponent(squeeze.id)}`} className="card card-sage row" style={{ textDecoration: "none", color: "inherit", gap: "var(--s-3)" }}>
+            <span className="item-icon" style={{ background: "var(--lavender)", color: "var(--lavender-ink)" }}>
+              <Icon name="activity" size={18} />
+            </span>
+            <span className="grow">
+              <span className="item-title" style={{ display: "block" }}>
+                {squeeze.source === "simulated" ? "Simulated squeeze session ready to log" : "Squeeze session ready to log"}
+              </span>
+              <span className="item-sub">
+                Peak effort {squeeze.peakEffort} over {formatDuration(squeeze.durationMs)}. Tap to add the details.
+              </span>
+            </span>
+            <Icon name="chevron" size={18} className="chev" />
+          </Link>
+        )}
 
         {user.email === DEMO_ACCOUNTS.story && (
           <Link href="/story" className="card row" style={{ textDecoration: "none", color: "inherit", gap: "var(--s-3)" }}>

@@ -1856,3 +1856,32 @@ a.entry:hover {
   margin-top: 3px;
   color: var(--primary-ink);
 }
+
+/* ---------- squeeze ball ---------- */
+.effort-big { white-space: nowrap; font-size: 56px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--primary-ink); }
+.effort-big small { font-size: var(--fs-16, 16px); font-weight: 500; color: var(--muted, #6b7280); margin-left: 4px; letter-spacing: 0; }
+.effort-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
+.effort-bar span { height: 22px; border-radius: 4px; background: var(--surface-3); transition: background 0.12s ease; }
+.effort-bar span.on { background: var(--primary); }
+.effort-bar span.on.mid { background: #d29a2c; }
+.effort-bar span.on.hi { background: #c4513f; }
+.effort-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.effort-stats > div { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.effort-stats strong { font-size: var(--fs-18, 18px); font-variant-numeric: tabular-nums; }
+.effort-stats span { font-size: 12px; color: var(--muted, #6b7280); }
+.effort-spark { width: 100%; height: 44px; display: block; }
+.effort-spark-fill { fill: var(--primary-soft); }
+.effort-spark-line { fill: none; stroke: var(--primary); stroke-width: 2; }
+.squeeze-btn {
+  --squeeze: 0;
+  width: 168px; height: 168px; margin: 8px auto; display: grid; place-items: center; border-radius: 50%;
+  border: 0; cursor: pointer; user-select: none; touch-action: none; -webkit-user-select: none;
+  font-weight: 700; font-size: var(--fs-16, 16px); color: var(--on-primary);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--primary) 70%, white), var(--primary));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 30%, transparent), inset 0 -8px 16px rgba(0, 0, 0, 0.15);
+  transform: scale(calc(1 - var(--squeeze) * 0.14), calc(1 - var(--squeeze) * 0.24));
+  transition: transform 0.08s linear;
+}
+.squeeze-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
+.pair-code { white-space: pre-wrap; word-break: break-all; font-size: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 0; }
+.effort-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--primary-soft); color: var(--primary-ink); }

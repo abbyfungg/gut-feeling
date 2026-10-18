@@ -27,6 +27,10 @@ Built at Hack the Valley 11 for PointClickCare's *Catch It Early* challenge. **P
 
 **Security**: scrypt password hashes, httpOnly session cookies (hashed server-side), same-origin checks on every write, server-side authorisation on every read (patients see only themselves; clinicians see only patients actively sharing with them; unknown and forbidden records both return 404), login rate limiting, upload validation by file signature and size, zod validation of all inputs and model outputs, security headers.
 
+## Squeeze ball (hardware, optional)
+
+An Arduino UNO R4 WiFi with a BMP280 pressure sensor sealed in a bag with a stress ball measures squeeze effort and sends it to the app over Wi-Fi. A finished session becomes a draft entry the patient confirms. No hardware? More > Squeeze ball has a simulator, always labelled "Simulated". Squeeze effort is a comfort log, not a clinical measure of straining. Build guide: [docs/HARDWARE.md](docs/HARDWARE.md). Sketch: `hardware/squeeze-ball/squeeze-ball.ino`.
+
 ## Install it like an app
 
 Gut Feeling is an installable web app (PWA). On your deployed link:
