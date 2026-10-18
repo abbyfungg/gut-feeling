@@ -5,18 +5,23 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicNav } from "@/components/public/PublicNav";
 import { Womby } from "@/components/Womby";
 import { getConfig } from "@/lib/config";
+import { GutNudge } from "@/components/patient/GutNudge";
+import { PatternChart } from "@/components/patient/PatternChart";
+import { getStoryMoment } from "@/lib/story";
+import { formatDateTime } from "@/lib/time";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/seed";
 import { currentUser } from "@/lib/session";
 import "../marketing.css";
 
 export const metadata = { title: "Caught early: Walter's story" };
 
-type Who = "patient" | "rule" | "clinician" | "outcome";
+type Who = "patient" | "app" | "rule" | "clinician" | "outcome";
 const STEPS: { day: string; who: Who; title: string; body: string }[] = [
   { day: "Day 1", who: "patient", title: "A new pain medicine", body: "After a hip appointment, Walter starts a new pain medicine. His son logs it as context in Gut Feeling." },
   { day: "Days 2–4", who: "patient", title: "Things get firmer", body: "His usual smooth type 4s turn into type 2s and a type 1, with straining and discomfort. He isn't drinking much." },
   { day: "Day 4", who: "rule", title: "First rule fires", body: "Three hard stools within a week trips the “repeated hard stools” rule. It cites the exact entries, and notes the new medicine as timing only." },
   { day: "Days 5–7", who: "patient", title: "Three quiet days", body: "His son confirms “no movement” three evenings in a row. On day 6: “Says his belly feels hard and full.”" },
+  { day: "Days 3–7", who: "app", title: "Womby warns Walter first", body: "Before any nurse looks, Walter's own app shows a calm nudge: his stools went from his usual type 4 to hard lumps, he's straining, and then nothing for three days, with a few things that help and a prompt to call his care team. See exactly what he saw below." },
   { day: "Day 7", who: "rule", title: "It reaches the top of the queue", body: "Consecutive confirmed days with nothing raises a second flag. Nurse Priya sees both in her morning review queue, with the evidence one click away." },
   { day: "Day 8, 9 a.m.", who: "clinician", title: "A phone call, not a wait", body: "Priya calls his son, learns about the medicine and low fluids, and arranges a same-day GP review instead of waiting for next week's visit." },
   { day: "Days 9–14", who: "outcome", title: "Back to his normal", body: "The GP adjusts his plan. With more water and short walks, Walter is back to type 3s and 4s within days. No emergency visit." },
@@ -32,6 +37,7 @@ const WHAT_IF: { title: string; body: string }[] = [
 
 const LABEL: Record<Who, { text: string; cls: string; icon: string }> = {
   patient: { text: "Patient-reported", cls: "badge-patient", icon: "user" },
+  app: { text: "In Walter's app", cls: "badge-warn", icon: "phone" },
   rule: { text: "Rule-based flag", cls: "badge-rule", icon: "flag" },
   clinician: { text: "Clinician action", cls: "badge-clinician", icon: "check" },
   outcome: { text: "Outcome", cls: "badge-ok", icon: "heart" },
@@ -41,6 +47,8 @@ export default async function Story() {
   const user = await currentUser();
   const demo = getConfig().seedDemoData;
   const home = user ? (user.role === "patient" ? "/me" : "/care") : null;
+  const m = getStoryMoment();
+  const tz = getConfig().timezone;
   return (
     <div className="mk-page">
       <div className="mk-top">
@@ -76,6 +84,71 @@ export default async function Story() {
               </li>
             ))}
           </ol>
+
+          {m && (
+            <section className="mk-views" aria-labelledby="two-views">
+              <div className="stack-2">
+                <span className="badge badge-demo" style={{ width: "fit-content" }}>
+                  Rebuilt from Walter&apos;s synthetic entries
+                </span>
+                <h2 id="two-views">Two views of the same week</h2>
+                <p className="muted">
+                  Left: what Walter&apos;s phone showed him on the evening of day 7, using only the entries logged by then. Right: what Priya saw in her queue the next morning.
+                </p>
+              </div>
+              <div className="mk-views-grid">
+                <div className="mk-view">
+                  <div className="mk-view-label">
+                    <span className="badge badge-patient">
+                      <Icon name="phone" /> Walter&apos;s view
+                    </span>
+                    <span className="small muted">{formatDateTime(m.asOf.toISOString(), tz)}</span>
+                  </div>
+                  <div className="mk-phone">
+                    <div className="mk-phone-screen stack-4">
+                      <section className="card stack-2" aria-label="Walter's last two weeks">
+                        <strong style={{ fontSize: "var(--fs-15)" }}>Your last two weeks</strong>
+                        <PatternChart days={m.pattern.days} usualType={m.pattern.usualType} highlight={m.flags.flatMap((f) => f.evidenceIds)} />
+                      </section>
+                      <GutNudge firstName={m.patient.name.split(" ")[0]} findings={m.pattern.findings} careTeam={m.careTeam} replay />
+                    </div>
+                  </div>
+                </div>
+                <div className="mk-view">
+                  <div className="mk-view-label">
+                    <span className="badge badge-clinician">
+                      <Icon name="clipboard" /> Priya&apos;s view
+                    </span>
+                    <span className="small muted">Next morning, review queue</span>
+                  </div>
+                  <div className="mk-queue stack-3">
+                    {m.flags.map((f) => (
+                      <article key={f.key} className="mk-queue-item">
+                        <div className="row wrap" style={{ gap: 6 }}>
+                          <span className={`badge ${f.severity === "high" ? "badge-alert" : "badge-warn"}`}>{f.severity === "high" ? "High priority" : "Review"}</span>
+                          <span className="badge badge-rule">Rule-based</span>
+                        </div>
+                        <h3>{f.title}</h3>
+                        <p className="small">{f.whatChanged}</p>
+                        <p className="tiny muted">
+                          {f.evidenceIds.length} cited {f.evidenceIds.length === 1 ? "entry" : "entries"} · {f.ruleDescription}
+                        </p>
+                      </article>
+                    ))}
+                    {m.review && (
+                      <article className="mk-queue-item reviewed">
+                        <span className="badge badge-clinician" style={{ width: "fit-content" }}>
+                          <Icon name="check" /> {m.review.practitionerName} · {formatDateTime(m.review.createdAt, tz)}
+                        </span>
+                        <p className="small">{m.review.note}</p>
+                        <p className="tiny muted">Follow-up: {m.review.followUp}</p>
+                      </article>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="mk-story-what-if" aria-labelledby="what-if">
             <span className="badge badge-warn" style={{ width: "fit-content" }}>

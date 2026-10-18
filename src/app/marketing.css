@@ -965,3 +965,17 @@
   color: var(--text-2);
   line-height: 1.5;
 }
+
+/* Story: Walter's view vs Priya's view */
+.mk-story-step.app .mk-story-dot { background: var(--peach); color: var(--peach-ink); }
+.mk-views { margin-top: var(--s-10, 40px); display: flex; flex-direction: column; gap: var(--s-5, 20px); }
+.mk-views #two-views { font-size: clamp(1.5rem, 3vw, 2rem); }
+.mk-views-grid { display: grid; gap: var(--s-6, 24px); grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 960px) { .mk-views-grid { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); } }
+.mk-view { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.mk-view-label { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mk-phone { background: #1c2420; border-radius: 40px; padding: 10px; box-shadow: 0 20px 50px rgba(20, 40, 30, 0.18); max-width: 400px; width: 100%; }
+.mk-phone-screen { background: var(--bg); border-radius: 31px; padding: 18px 12px; }
+.mk-queue-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg, 16px); padding: var(--s-4, 16px); display: flex; flex-direction: column; gap: 6px; }
+.mk-queue-item h3 { font-size: var(--fs-16, 16px); }
+.mk-queue-item.reviewed { border-color: var(--primary-soft-2); background: var(--primary-soft); }

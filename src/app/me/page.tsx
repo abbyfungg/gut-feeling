@@ -8,6 +8,9 @@ import { WombyFact } from "@/components/WombyFact";
 import { EntryList } from "@/components/patient/EntryList";
 import { groupOf } from "@/components/patient/meta";
 import { getConfig } from "@/lib/config";
+import { GutNudge } from "@/components/patient/GutNudge";
+import { PatternChart } from "@/components/patient/PatternChart";
+import { describePattern } from "@/lib/pattern";
 import type { DayPoint } from "@/lib/rules/trends";
 import { getPatientOverview, listSharing } from "@/lib/records";
 import { DEMO_ACCOUNTS } from "@/lib/seed";
@@ -69,6 +72,8 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
   const weekLogs = weekEntries.filter((e) => e.kind === "movement").length;
   const weekSymptoms = weekEntries.reduce((n, e) => n + (e.symptoms?.length ?? 0), 0);
   const isEmpty = o.entries.length === 0;
+  const pattern = describePattern(o.entries, now, tz);
+  const showNudge = pattern.findings.some((f) => f.kind === "harder" || f.kind === "gap" || f.kind === "looser");
 
   const sub = isEmpty
     ? "Welcome in. Your first log takes about ten seconds."
@@ -110,8 +115,25 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           <NoMovementButton alreadyLoggedToday={movementToday} alreadyConfirmed={noneToday} />
         </div>
 
+        {showNudge && (
+          <>
+            <GutNudge
+              firstName={firstName}
+              findings={pattern.findings}
+              careTeam={shares.map((s) => s.practitioner.name)}
+              entriesHref={`/me/entries?highlight=${encodeURIComponent(pattern.findings.flatMap((f) => f.entryIds).join(","))}`}
+            />
+            <section className="card stack-2" aria-labelledby="pattern-h">
+              <h2 id="pattern-h" style={{ fontSize: "var(--fs-16)" }}>
+                Your last two weeks
+              </h2>
+              <PatternChart days={pattern.days} usualType={pattern.usualType} highlight={pattern.findings.flatMap((f) => f.entryIds)} />
+            </section>
+          </>
+        )}
+
         {user.email === DEMO_ACCOUNTS.story && (
-          <Link href="/story" className="card row" style={{ textDecoration: "none", color: "inherit", gap: "var(--s-3)" }}>
+          <Link href="/me/looking-back" className="card row" style={{ textDecoration: "none", color: "inherit", gap: "var(--s-3)" }}>
             <span className="item-icon" style={{ background: "var(--primary)", color: "var(--on-primary)" }}>
               <Icon name="heart" size={18} />
             </span>
@@ -119,7 +141,7 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
               <span className="item-title" style={{ display: "block" }}>
                 Caught early
               </span>
-              <span className="item-sub">Last week Priya spotted a pattern in your log and called the same morning. See how it went.</span>
+              <span className="item-sub">Last week Womby warned you your gut had slowed down, and Priya called the next morning. See exactly what your app showed you.</span>
             </span>
             <Icon name="chevron" size={18} className="chev" />
           </Link>

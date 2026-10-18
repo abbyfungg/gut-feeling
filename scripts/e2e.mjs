@@ -212,6 +212,29 @@ const stamp = `e2e note ${Date.now()}`;
   await n.ctx.close();
 }
 
+// ---- Walter's caught-early story: what he saw before the nurse flagged it ----
+{
+  const { ctx, page } = await newPage({ width: 390, height: 844 });
+  await page.goto(BASE + "/story");
+  check(await page.getByRole("heading", { name: "Two views of the same week" }).isVisible(), "story shows Walter's view and Priya's view");
+  check((await page.locator(".mk-views .nudge").count()) === 1, "story shows the warning Walter saw");
+  await page.goto(BASE + "/signin");
+  await page.getByLabel("Email").fill("walter@demo.gutfeeling.health");
+  await page.getByLabel("Password").fill("everybodypoops");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.waitForURL("**/me");
+  check((await page.locator(".nudge").count()) === 0, "no warning for Walter now that he's back to normal");
+  await page.getByRole("link", { name: /Caught early/ }).click();
+  await page.waitForURL("**/me/looking-back");
+  check(await page.getByText("Womby noticed a change").isVisible(), "Walter's replay shows Womby's warning");
+  check(await page.getByText("Nothing for 3 days").isVisible(), "warning names the days with nothing");
+  check(await page.getByText("Your stools got harder").isVisible(), "warning names the harder stools");
+  check(await page.getByText(/Tell Priya how you're feeling/).isVisible(), "warning prompts him to tell his care team");
+  check((await page.locator(".pattern-chart svg").count()) === 1, "replay shows his two-week pattern chart");
+  await shot(page, "50-walter-replay");
+  await ctx.close();
+}
+
 // ---- Installable app + signed-out access ----
 {
   const { ctx, page } = await newPage();
