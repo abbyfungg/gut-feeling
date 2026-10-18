@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { createDeviceToken, revokeDeviceTokens } from "@/lib/device";
 import { json, withApi } from "@/lib/session";
 
-/** Pair a squeeze ball: returns the token once, plus the address the Arduino should send to. */
+/** Pair a water bottle: returns the token once, plus the address the Arduino should send to. */
 export async function POST(req: Request) {
   return withApi(req, { role: "patient" }, async (user) => {
     const h = await headers();

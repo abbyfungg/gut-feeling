@@ -13,6 +13,7 @@ import { PatternChart } from "@/components/patient/PatternChart";
 import { describePattern } from "@/lib/pattern";
 import { fluidDays } from "@/lib/fluids";
 import { hydrationSummary } from "@/lib/hydration";
+import { formatWater } from "@/lib/water-format";
 import type { DayPoint } from "@/lib/rules/trends";
 import { getPatientOverview, listSharing } from "@/lib/records";
 import { DEMO_ACCOUNTS } from "@/lib/seed";
@@ -119,13 +120,13 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           <NoMovementButton alreadyLoggedToday={movementToday} alreadyConfirmed={noneToday} />
         </div>
 
-        <Link href="/me/water" className="card water-mini" aria-label={`Water today: ${(water.ml / 1000).toFixed(1)} litres. Open water tracking`}>
+        <Link href="/me/water" className="card water-mini" aria-label={`Water today: ${formatWater(water.ml).text}. Open water tracking`}>
           <span className="item-icon" style={{ background: "var(--sky)", color: "var(--sky-ink)" }}>
             <Icon name="water" size={18} />
           </span>
           <span className="grow">
             <span className="item-title" style={{ display: "block" }}>
-              Water today: {(water.ml / 1000).toFixed(1)} L
+              Water today: {formatWater(water.ml).text}
             </span>
             <span className="item-sub">
               {water.sources.includes("simulated")

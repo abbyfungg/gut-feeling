@@ -46,6 +46,11 @@ export function getPairing(viewer: User): { paired: boolean; pairedAt: string | 
 
 /** Looks up the patient for a device token. Returns null for unknown or revoked tokens. */
 export function patientForDeviceToken(token: string | null | undefined, now = new Date()): string | null {
+  return deviceForToken(token, now)?.patientId ?? null;
+}
+
+/** The paired device (its token row id and patient) for a token, or null. Marks it as seen. */
+export function deviceForToken(token: string | null | undefined, now = new Date()): { tokenId: string; patientId: string } | null {
   if (!token || !/^gfd_[A-Za-z0-9_-]{20,60}$/.test(token)) return null;
   const db = getDb();
   const row = db
@@ -53,5 +58,5 @@ export function patientForDeviceToken(token: string | null | undefined, now = ne
     .get(hashToken(token)) as { id: string; patient_id: string } | undefined;
   if (!row) return null;
   db.prepare("UPDATE device_tokens SET last_seen_at = ? WHERE id = ?").run(now.toISOString(), row.id);
-  return row.patient_id;
+  return { tokenId: row.id, patientId: row.patient_id };
 }

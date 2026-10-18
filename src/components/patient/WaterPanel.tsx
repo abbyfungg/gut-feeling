@@ -2,6 +2,7 @@
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { formatWater, pairingState } from "@/lib/water-format";
 
 type Source = "bottle" | "manual" | "simulated";
 type Day = { day: string; ml: number; estimated: boolean; simulated: boolean };
@@ -35,13 +36,13 @@ export function WeekBars({ week, today }: { week: Day[]; today: string }) {
   }
   const max = Math.max(2500, ...days.map((d) => d.ml));
   return (
-    <div className="water-week" role="img" aria-label={days.map((d) => `${weekday(d.day)}: ${(d.ml / 1000).toFixed(1)} litres`).join(", ")}>
+    <div className="water-week" role="img" aria-label={days.map((d) => `${weekday(d.day)}: ${formatWater(d.ml).text}`).join(", ")}>
       <span className="water-well" style={{ bottom: `calc(18px + ${(WELL / max) * 100}px)` }}>
         <span>1.5 L</span>
       </span>
       {days.map((d) => (
         <div key={d.day} className="water-col">
-          <span className="water-val">{d.ml ? (d.ml / 1000).toFixed(1) : ""}</span>
+          <span className="water-val">{d.ml ? (d.ml >= 1000 ? (d.ml / 1000).toFixed(1) : `${Math.round(d.ml / 10) / 100}`) : ""}</span>
           <i style={{ height: `${Math.max(2, (d.ml / max) * 100)}px` }} className={d.simulated ? "sim" : ""} />
           <span className="water-day">{d.day === today ? "Today" : weekday(d.day)}</span>
         </div>
@@ -56,6 +57,8 @@ export function WaterPanel({ initial, initialPairing, today, insight }: { initia
   const [newToken, setNewToken] = useState<NewToken | null>(null);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [undo, setUndo] = useState<{ id: string; what: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const poll = useCallback(async () => {
     const res = await fetch("/api/hydration", { cache: "no-store" }).catch(() => null);
@@ -72,8 +75,22 @@ export function WaterPanel({ initial, initialPairing, today, insight }: { initia
 
   async function add(source: "manual" | "simulated", ml: number, sips: number) {
     setBusy(true);
+    setError(null);
     const res = await fetch("/api/hydration", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source, ml, sips }) }).catch(() => null);
+    if (res?.ok) {
+      const b = await res.json();
+      setT(b.today);
+      if (b.id) setUndo({ id: b.id, what: source === "manual" ? `glass (${ml} ml)` : `sip (${ml} ml)` });
+    } else setError(res ? "That didn't save. Try again." : "You seem to be offline. Try again when you're connected.");
+    setBusy(false);
+  }
+  async function undoLast() {
+    if (!undo) return;
+    setBusy(true);
+    const res = await fetch(`/api/hydration?id=${encodeURIComponent(undo.id)}`, { method: "DELETE" }).catch(() => null);
     if (res?.ok) setT((await res.json()).today);
+    else setError("Couldn't undo that one.");
+    setUndo(null);
     setBusy(false);
   }
   async function pair() {
@@ -91,7 +108,12 @@ export function WaterPanel({ initial, initialPairing, today, insight }: { initia
     setBusy(false);
   }
 
-  const online = pairing.lastSeenAt && now - new Date(pairing.lastSeenAt).getTime() < 10 * 60_000;
+  const state = pairingState(pairing, now);
+  const water = formatWater(t.ml);
+  const ago = (iso: string) => {
+    const m = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60_000));
+    return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
+  };
   const [hostName, hostPort] = (newToken?.host ?? "").split(":");
 
   return (
@@ -102,9 +124,9 @@ export function WaterPanel({ initial, initialPairing, today, insight }: { initia
             <h2 id="water-today" className="eyebrow">
               Water today
             </h2>
-            <div className="effort-big">
-              {(t.ml / 1000).toFixed(1)}
-              <small> L</small>
+            <div className="effort-big" data-testid="water-total" aria-live="polite">
+              {water.value}
+              <small> {water.unit}</small>
             </div>
             <span className="small muted" suppressHydrationWarning>
               {t.sips ? `${t.sips} ${t.sips === 1 ? "sip" : "sips"}` : "No sips yet"}
@@ -117,6 +139,19 @@ export function WaterPanel({ initial, initialPairing, today, insight }: { initia
         <button type="button" className="btn btn-secondary" onClick={() => add("manual", 250, 0)} disabled={busy}>
           <Icon name="plus" /> Add a glass (250 ml)
         </button>
+        {undo && (
+          <p className="small row" style={{ gap: 8, margin: 0 }} role="status">
+            Added a {undo.what}.
+            <button type="button" className="link-btn small" onClick={undoLast} disabled={busy}>
+              Undo
+            </button>
+          </p>
+        )}
+        {error && (
+          <p className="form-error" role="alert" style={{ margin: 0 }}>
+            <Icon name="alert" size={16} /> <span>{error}</span>
+          </p>
+        )}
         <p className="tiny muted">Bottle amounts are estimates: each sip counts as about 30 ml. A glass you add yourself counts as 250 ml.</p>
       </section>
 
@@ -143,8 +178,16 @@ export function WaterPanel({ initial, initialPairing, today, insight }: { initia
           <h2 id="pair-h" style={{ fontSize: "var(--fs-18)" }}>
             Your water bottle
           </h2>
-          <span className={`badge ${online ? "badge-ok" : ""}`}>{pairing.paired ? (online ? "Online" : "Paired") : "Not paired"}</span>
+          <span className={`badge ${state === "online" ? "badge-ok" : state === "waiting" ? "badge-demo" : ""}`} data-testid="pair-state">
+            {state === "none" ? "Not paired" : state === "waiting" ? "Waiting for your bottle" : state === "online" ? "Online" : "Offline"}
+          </span>
         </div>
+        {state === "waiting" && <p className="small" style={{ margin: 0 }}>Paired, but your bottle hasn&apos;t sent anything yet. Upload the sketch with the code below and switch it on.</p>}
+        {(state === "online" || state === "offline") && pairing.lastSeenAt && (
+          <p className="small muted" style={{ margin: 0 }} suppressHydrationWarning>
+            Last heard from your bottle {ago(pairing.lastSeenAt)}.{state === "offline" ? " It checks in every 5 minutes when it's on and on Wi-Fi." : ""}
+          </p>
+        )}
         <p className="small muted">
           An Arduino with a motion sensor taped to the bottle counts sips and sends them over Wi-Fi with its own pairing code, which can only add water to your diary.
         </p>

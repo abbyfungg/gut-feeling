@@ -105,6 +105,15 @@ CREATE TABLE IF NOT EXISTS hydration_events (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS hydration_patient_time ON hydration_events(patient_id, occurred_at);
+
+-- The bottle's running totals since it last powered on, so a resent upload is never counted twice.
+CREATE TABLE IF NOT EXISTS device_counters (
+  token_id TEXT PRIMARY KEY REFERENCES device_tokens(id) ON DELETE CASCADE,
+  boot TEXT NOT NULL,
+  total_sips INTEGER NOT NULL,
+  total_ml INTEGER NOT NULL,
+  updated_at TEXT NOT NULL
+);
 `;
 
 type G = typeof globalThis & { __gutDb?: DatabaseSync; __gutDbFile?: string };
