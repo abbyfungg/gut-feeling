@@ -10,14 +10,14 @@ export function DeleteAccount() {
   const [error, setError] = useState<string | null>(null);
   if (!open)
     return (
-      <button className="btn btn-danger" onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-danger btn-sm" onClick={() => setOpen(true)}>
         Delete my account and diary
       </button>
     );
   return (
     <div className="stack">
-      <label htmlFor="confirm-delete">
-        This permanently deletes your account, every entry, your sharing settings and any reviews. Type <span className="kbd">DELETE</span> to confirm.
+      <label htmlFor="confirm-delete" className="label" style={{ fontWeight: 400 }}>
+        This permanently deletes your account, every entry, your sharing settings and any reviews. Type <strong>DELETE</strong> to confirm.
       </label>
       <input id="confirm-delete" type="text" value={text} onChange={(e) => setText(e.target.value)} autoComplete="off" />
       {error && (
@@ -25,7 +25,7 @@ export function DeleteAccount() {
           {error}
         </p>
       )}
-      <div className="row">
+      <div className="row-2">
         <button
           className="btn btn-danger"
           disabled={text !== "DELETE" || busy}
@@ -47,7 +47,7 @@ export function DeleteAccount() {
         >
           Permanently delete
         </button>
-        <button className="btn btn-ghost" onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>
           Never mind
         </button>
       </div>

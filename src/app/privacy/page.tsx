@@ -2,122 +2,128 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
-import { Mascot } from "@/components/Mascot";
+import { PublicFooter } from "@/components/public/PublicFooter";
+import { PublicNav } from "@/components/public/PublicNav";
 import { getConfig, isGeminiConfigured } from "@/lib/config";
+import { currentUser } from "@/lib/session";
+import "../marketing.css";
 
 export const metadata = { title: "Privacy, in plain English" };
 
-function Point({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="row top small" style={{ gap: 10 }}>
-      <span style={{ color: "var(--ok)", marginTop: 2 }}>
-        <Icon name="check" size={16} />
-      </span>
-      <span>{children}</span>
-    </li>
-  );
-}
+const SECTIONS = [
+  { id: "store", title: "What we store" },
+  { id: "access", title: "Who can see it" },
+  { id: "photos", title: "Photos" },
+  { id: "deleting", title: "Deleting things" },
+  { id: "claims", title: "What we don't claim" },
+];
 
-function Section({ icon, tint, title, children }: { icon: string; tint: string; title: string; children: React.ReactNode }) {
-  return (
-    <section className="card pad-lg stack">
-      <div className="row" style={{ gap: 12 }}>
-        <span className={`stat-icon ${tint}`} style={{ margin: 0, width: 40, height: 40, borderRadius: 14 }} aria-hidden>
-          <Icon name={icon} size={20} />
-        </span>
-        <h2>{title}</h2>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-export default function Privacy() {
+export default async function Privacy() {
   const ai = isGeminiConfigured();
+  const user = await currentUser();
+  const home = user ? (user.role === "patient" ? "/me" : "/care") : null;
+  const homeLabel = user?.role === "patient" ? "Open my diary" : "Open my dashboard";
+
   return (
-    <div className="container" style={{ maxWidth: 820 }}>
-      <header className="site-nav">
-        <Link href="/" className="brand">
-          <span className="brand-mark">
-            <Mascot size={30} bob={false} />
-          </span>
-          Gut Feeling
-        </Link>
-        <nav className="nav-links" aria-label="Main">
-          <Link href="/signin" className="btn btn-secondary btn-sm">
-            Sign in
-          </Link>
-        </nav>
-      </header>
-
-      <main id="main" className="page stack-lg">
-        <div className="stack">
-          <span className="pill pill-ok" style={{ width: "fit-content" }}>
-            <Icon name="lock" size={12} /> No fine print
-          </span>
+    <div className="mk-page">
+      <PublicNav home={home} homeLabel={homeLabel} />
+      <main id="main" className="mk-doc">
+        <header className="mk-doc-head">
+          <span className="eyebrow">Privacy</span>
           <h1>Privacy, in plain English</h1>
-          <p className="muted">What this prototype actually does with your information.</p>
-        </div>
-
-        <div className="grid-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(300px, 100%), 1fr))" }}>
-          <Section icon="book" tint="tint-butter" title="What we store">
-            <ul className="stack" style={{ listStyle: "none" }}>
-              <Point>Name, email, and a hashed password.</Point>
-              <Point>Diary entries: time, stool type, and only the extras you add.</Point>
-              <Point>If you share: when sharing changed, and any reviews recorded.</Point>
+          <p>What this prototype actually does with your information. No fine print.</p>
+          <nav aria-label="On this page">
+            <ul className="mk-toc">
+              {SECTIONS.map((s) => (
+                <li key={s.id}>
+                  <a href={`#${s.id}`}>{s.title}</a>
+                </li>
+              ))}
             </ul>
-          </Section>
+          </nav>
+        </header>
 
-          <Section icon="users" tint="tint-lavender" title="Who can see it">
-            <ul className="stack" style={{ listStyle: "none" }}>
-              <Point>You.</Point>
-              <Point>A care-team member, only while sharing is on. Switch it off and access stops right away.</Point>
-              <Point>The server checks on every request — editing a link or ID gets nobody in.</Point>
-            </ul>
-          </Section>
-        </div>
+        <section id="store" aria-labelledby="store-h">
+          <h2 id="store-h">
+            <Icon name="book" size={20} /> What we store
+          </h2>
+          <ul>
+            <li>Your name, email, and a hashed password.</li>
+            <li>Diary entries: the time, the stool type, and only the extras you choose to add.</li>
+            <li>If you share: when sharing was switched on or off, and any reviews your care team recorded.</li>
+          </ul>
+        </section>
 
-        <Section icon="camera" tint="tint-sky" title="Photos">
-          <div className="row wrap" style={{ gap: 6 }}>
-            <span className="pill pill-ok">
+        <section id="access" aria-labelledby="access-h">
+          <h2 id="access-h">
+            <Icon name="users" size={20} /> Who can see it
+          </h2>
+          <ul>
+            <li>You.</li>
+            <li>A care-team member, only while sharing is on. Switch it off and their access stops right away.</li>
+            <li>The server checks permission on every request, so editing a link or an ID gets nobody in.</li>
+          </ul>
+        </section>
+
+        <section id="photos" aria-labelledby="photos-h">
+          <h2 id="photos-h">
+            <Icon name="camera" size={20} /> Photos
+          </h2>
+          <div className="mk-status">
+            <span className="badge badge-ok">
               <Icon name="check" size={12} /> Photo never stored
             </span>
-            <span className={`pill ${ai ? "pill-lav" : ""}`}>
+            <span className={`badge ${ai ? "badge-ai" : ""}`}>
               <Icon name="sparkle" size={12} /> Photo help: {ai ? "on (Gemini API)" : "off · manual entry only"}
             </span>
           </div>
-          <p className="small muted">
-            Photos are optional. With photo help on, the photo goes to Google&apos;s Gemini API to estimate a stool type, is held in memory for that one
-            request, then discarded. <strong style={{ color: "var(--ink)" }}>We never save the photo</strong> to disk or the database — only the result
-            (e.g. &ldquo;type 4, medium confidence&rdquo;), and only if you save the entry. Google&apos;s terms apply to data sent to Gemini.
+          <p>
+            Photos are optional. With photo help on, the photo is sent to Google&apos;s Gemini API to estimate a stool type. It is held in memory for that
+            one request, then discarded.
           </p>
-        </Section>
-
-        <Section icon="trash" tint="tint-blush" title="Deleting things">
-          <p className="small muted">
-            Deleting an entry removes it from the database. Deleting your account removes your account, entries, sharing records and reviews of your
-            record. Server backups, if the host keeps any, are outside the app&apos;s control.
-          </p>
-        </Section>
-
-        <section className="card pad-lg tint-peach stack">
-          <div className="row" style={{ gap: 10 }}>
-            <Icon name="alert" size={20} />
-            <h2>What we don&apos;t claim</h2>
-          </div>
-          <p className="small">
-            A hackathon prototype. Not a medical device, doesn&apos;t diagnose anything, and not audited for health-privacy regulations. The database is a
-            single file on the server ({getConfig().isProduction ? "hosted" : "local"}), not separately encrypted by the app. Demo accounts and their data
-            are fictional.
+          <p>
+            <strong>We never save the photo</strong> to disk or to the database. Only the result is kept (for example, &ldquo;type 4, medium
+            confidence&rdquo;), and only if you save the entry. The estimate is a suggestion you can change, not a diagnosis. Google&apos;s terms apply to
+            data sent to Gemini.
           </p>
         </section>
-      </main>
 
-      <footer className="footer">
-        <Link href="/" className="link">
-          ← Back home
-        </Link>
-      </footer>
+        <section id="deleting" aria-labelledby="deleting-h">
+          <h2 id="deleting-h">
+            <Icon name="trash" size={20} /> Deleting things
+          </h2>
+          <p>
+            Deleting an entry removes it from the database. Deleting your account removes your account, your entries, your sharing records, and any reviews
+            of your record.
+          </p>
+          <p>Server backups, if the host keeps any, are outside the app&apos;s control.</p>
+        </section>
+
+        <section id="claims" aria-labelledby="claims-h">
+          <div className="mk-claims">
+            <h2 id="claims-h">
+              <Icon name="info" size={20} /> What we don&apos;t claim
+            </h2>
+            <p>
+              This is a hackathon prototype. It is not a medical device, it doesn&apos;t diagnose anything, and it has not been audited for health-privacy
+              regulations. The database is a single file on the server ({getConfig().isProduction ? "hosted" : "local"}) and is not separately encrypted by
+              the app. Demo accounts and their data are fictional.
+            </p>
+          </div>
+        </section>
+
+        <div className="mk-doc-foot">
+          <Link href="/" className="btn btn-secondary">
+            <Icon name="back" size={18} /> Back home
+          </Link>
+          {!user && (
+            <Link href="/signup" className="btn btn-tonal">
+              Create a private diary
+            </Link>
+          )}
+        </div>
+      </main>
+      <PublicFooter />
     </div>
   );
 }

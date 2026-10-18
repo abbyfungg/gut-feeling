@@ -8,13 +8,13 @@ export function ShareToggle({ practitionerId, name, active }: { practitionerId: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <div style={{ textAlign: "right", flex: "none" }}>
+    <div className="stack-1" style={{ alignItems: "flex-end", flex: "none" }}>
       <button
         type="button"
         role="switch"
         aria-checked={on}
         aria-label={`Share my diary with ${name}`}
-        className="toggle"
+        className="switch"
         disabled={busy}
         onClick={async () => {
           const next = !on;
@@ -28,17 +28,17 @@ export function ShareToggle({ practitionerId, name, active }: { practitionerId: 
           if (res?.ok) {
             setOn(next);
             router.refresh();
-          } else setError("Didn't save. Try again?");
+          } else setError(res ? "Didn't save. Try again?" : "You're offline.");
           setBusy(false);
         }}
       />
-      <div className="tiny muted" aria-live="polite" style={{ marginTop: 4 }}>
-        {on ? "Sharing" : "Not sharing"}
-      </div>
+      <span className="tiny muted" aria-live="polite">
+        {on ? "Sharing" : "Off"}
+      </span>
       {error && (
-        <div className="tiny" role="alert" style={{ color: "var(--high)" }}>
+        <span className="tiny" role="alert" style={{ color: "var(--danger)" }}>
           {error}
-        </div>
+        </span>
       )}
     </div>
   );

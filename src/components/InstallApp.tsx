@@ -34,20 +34,20 @@ export function InstallApp() {
 
   if (installed) return null;
   return (
-    <section className="card tint-ink row" style={{ gap: 14, border: 0 }} aria-label="Install the app">
-      <span className="stat-icon" style={{ margin: 0, width: 44, height: 44, borderRadius: 14, background: "linear-gradient(140deg, var(--butter-strong), var(--tangerine))", color: "var(--ink)" }}>
-        <Icon name="phone" />
+    <section className="card row" style={{ gap: "var(--s-3)" }} aria-label="Install the app">
+      <span className="item-icon" style={{ background: "var(--butter)", color: "var(--butter-ink)" }}>
+        <Icon name="phone" size={18} />
       </span>
-      <div className="grow">
-        <div className="bold">Get the app</div>
-        <div className="tiny" style={{ opacity: 0.75 }}>
-          {evt ? "Install it on your home screen. No app store needed." : ios ? "Tap Share, then “Add to Home Screen”." : "Use your browser menu: “Install app” or “Add to Home Screen”."}
+      <div className="grow" style={{ minWidth: 0 }}>
+        <div className="item-title">Add to your home screen</div>
+        <div className="item-sub">
+          {evt ? "Opens like an app. No app store needed." : ios ? "In Safari, tap Share, then \u201cAdd to Home Screen\u201d." : "Use your browser menu: \u201cInstall app\u201d or \u201cAdd to Home Screen\u201d."}
         </div>
       </div>
       {evt && (
         <button
-          className="btn btn-sm"
-          style={{ background: "var(--butter-strong)", color: "var(--ink)" }}
+          type="button"
+          className="btn btn-tonal btn-sm"
           onClick={async () => {
             await evt.prompt();
             const choice = await evt.userChoice.catch(() => null);

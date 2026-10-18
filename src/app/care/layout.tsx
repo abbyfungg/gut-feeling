@@ -3,76 +3,63 @@ import { Suspense } from "react";
 import { Avatar } from "@/components/Avatar";
 import { CareNav } from "@/components/CareNav";
 import { Icon } from "@/components/Icon";
-import { Mascot } from "@/components/Mascot";
 import { SignOutButton } from "@/components/SignOutButton";
+import { Womby } from "@/components/Womby";
 import { getCaseload, listOpenFollowUps } from "@/lib/records";
 import { requirePage } from "@/lib/session";
+import "./care.css";
 
 export const dynamic = "force-dynamic";
-
-/** Re-tints the shared ghost button for the dark sidebar / top bar via inherited tokens. */
-const onDark = { "--ink-2": "rgba(255,250,244,0.72)", "--ink": "#fff", "--surface-2": "rgba(255,255,255,0.08)" } as React.CSSProperties;
 
 export default async function CareLayout({ children }: { children: React.ReactNode }) {
   const user = await requirePage("practitioner");
   const caseload = getCaseload(user);
   const counts = { queue: caseload.reduce((n, c) => n + c.outstanding.length, 0), followups: listOpenFollowUps(user).length };
   const brand = (
-    <Link href="/care" className="brand">
-      <span className="brand-mark">
-        <Mascot size={30} bob={false} />
+    <Link href="/care" className="care-brand" aria-label="Gut Feeling care team, review queue">
+      <span className="care-brand-mark">
+        <Womby pose="happy" size={28} />
       </span>
-      Gut Feeling
+      <span>
+        <span className="care-brand-name">Gut Feeling</span>
+        <span className="care-brand-sub">Care team</span>
+      </span>
     </Link>
   );
 
   return (
-    <div className="console">
-      <aside className="sidebar">
+    <div className="care-app">
+      <aside className="care-side" aria-label="Care team navigation">
         {brand}
-        <span className="eyebrow" style={{ color: "rgba(255,250,244,0.45)", margin: "0 12px 6px" }}>
-          Care team
-        </span>
         <Suspense fallback={null}>
           <CareNav variant="side" counts={counts} />
         </Suspense>
-        <div className="side-foot">
-          <div className="row">
-            <Avatar name={user.name} size="sm" />
+        <div className="care-side-foot">
+          <div className="row" style={{ gap: 10 }}>
+            <Avatar name={user.name} />
             <div className="grow">
-              <div className="small bold" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {user.name}
-              </div>
-              {user.title && (
-                <div className="tiny" style={{ color: "rgba(255,250,244,0.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {user.title}
-                </div>
-              )}
+              <div className="small strong truncate">{user.name}</div>
+              {(user.title || user.organization) && <div className="tiny faint truncate">{[user.title, user.organization].filter(Boolean).join(" · ")}</div>}
             </div>
           </div>
-          <span style={onDark}>
-            <SignOutButton />
-          </span>
-          <p className="tiny row top" style={{ color: "rgba(255,250,244,0.5)", gap: 6 }}>
+          <SignOutButton />
+          <p className="care-note">
             <Icon name="shield" size={14} />
-            <span>Rule-based prompts, not diagnoses. Fictional patients.</span>
+            <span>Rule-based prompts, not diagnoses.</span>
           </p>
         </div>
       </aside>
 
-      <div style={{ minWidth: 0 }}>
-        <header className="mobile-top">
+      <div className="care-main">
+        <header className="care-mtop">
           {brand}
           <span className="grow" />
-          <Avatar name={user.name} size="sm" />
-          <span style={onDark}>
-            <SignOutButton />
-          </span>
+          <SignOutButton />
         </header>
         <Suspense fallback={null}>
           <CareNav variant="tabs" counts={counts} />
         </Suspense>
-        <main id="main" className="console-main">
+        <main id="main" className="care-main">
           {children}
         </main>
       </div>

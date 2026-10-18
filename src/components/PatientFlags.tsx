@@ -1,70 +1,64 @@
+import Link from "next/link";
 import type { FlagWithStatus } from "@/lib/records";
 import { formatDateTime } from "@/lib/time";
-import Link from "next/link";
 import { Icon } from "./Icon";
 
 function span(f: FlagWithStatus, tz: string) {
-  const fmt = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, weekday: "short", month: "short", day: "numeric" }).format(new Date(iso));
+  const fmt = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, month: "short", day: "numeric" }).format(new Date(iso));
   const a = fmt(f.windowStart);
   const b = fmt(f.windowEnd);
   return a === b ? a : `${a} – ${b}`;
 }
 
-/** Calm, plain-language versions of the care-team flags, for the person themselves. No jokes here. */
-export function PatientFlags({ flags, timeZone, shared, heading = true }: { flags: FlagWithStatus[]; timeZone: string; shared: boolean; heading?: boolean }) {
+/** Plain-language versions of the rule-based flags, for the person themselves. Calm, never alarming, never a diagnosis. */
+export function PatientFlags({ flags, timeZone, shared }: { flags: FlagWithStatus[]; timeZone: string; shared: boolean }) {
   if (flags.length === 0) return null;
   return (
-    <section aria-labelledby="worth-a-look" className="stack-sm">
-      {heading && (
-        <div className="section-head">
-          <h2 id="worth-a-look">Worth a look</h2>
-          <span className="pill">{flags.length}</span>
-        </div>
-      )}
-      {flags.map((f) => {
-        const reviewed = Boolean(f.latestReview);
-        return (
-          <details key={f.key} className="insight">
-            <summary>
-              <span className={`insight-icon ${reviewed && f.status === "reviewed" ? "ok" : f.severity}`} aria-hidden>
-                <Icon name={reviewed && f.status === "reviewed" ? "check" : f.rule === "reported_blood" ? "drop" : "alert"} size={20} />
-              </span>
-              <span className="grow" style={{ minWidth: 0 }}>
-                <span className="insight-title" style={{ display: "block" }}>
-                  {f.patientTitle}
+    <section aria-labelledby="worth-a-look" className="stack-2">
+      <div className="section-head">
+        <h2 id="worth-a-look">Worth a look</h2>
+        <span className="badge badge-rule">Based on simple rules</span>
+      </div>
+      <div className="group">
+        {flags.map((f) => {
+          const seen = f.latestReview && f.status === "reviewed";
+          return (
+            <details key={f.key} className="flag-item">
+              <summary className="item" style={{ cursor: "pointer", listStyle: "none" }}>
+                <span className="item-icon" style={{ background: seen ? "var(--ok-bg)" : f.severity === "high" ? "var(--danger-bg)" : "var(--warn-bg)", color: seen ? "var(--ok)" : f.severity === "high" ? "var(--danger)" : "var(--warn)" }}>
+                  <Icon name={seen ? "check" : f.rule === "reported_blood" ? "drop" : "flag"} size={18} />
                 </span>
-                <span className="insight-sub" style={{ display: "block" }}>
-                  {span(f, timeZone)} · {f.evidenceIds.length} {f.evidenceIds.length === 1 ? "log" : "logs"}
-                  {reviewed ? ` · Seen by ${f.latestReview!.practitionerName}` : ""}
+                <span className="grow">
+                  <span className="item-title" style={{ display: "block" }}>
+                    {f.patientTitle}
+                  </span>
+                  <span className="item-sub" style={{ display: "block" }}>
+                    {span(f, timeZone)} · {f.evidenceIds.length} {f.evidenceIds.length === 1 ? "entry" : "entries"}
+                    {f.latestReview ? ` · Seen by ${f.latestReview.practitionerName}` : ""}
+                  </span>
                 </span>
-              </span>
-              <span className="chev" aria-hidden>
-                <Icon name="chevron" size={18} />
-              </span>
-            </summary>
-            <div className="insight-body">
-              <p style={{ margin: 0, color: "var(--ink)" }}>{f.patientMessage}</p>
-              {f.latestReview ? (
-                <p style={{ margin: 0, fontWeight: 700, color: "var(--ok-ink)" }}>
-                  ✓ {f.latestReview.practitionerName} looked at this on {formatDateTime(f.latestReview.createdAt, timeZone)}
-                  {f.status === "new_info" ? " (you've added entries since)" : ""}.
-                </p>
-              ) : shared ? (
-                <p style={{ margin: 0 }}>Your care team can see this too. Not reviewed yet.</p>
-              ) : (
-                <p style={{ margin: 0 }}>
-                  Private: nobody else has been notified. <Link href="/me/sharing" className="link">Sharing</Link>
-                </p>
-              )}
-              <Link href={`/me/diary?highlight=${encodeURIComponent(f.evidenceIds.join(","))}`} className="btn btn-secondary btn-sm" style={{ alignSelf: "flex-start" }}>
-                See those entries <Icon name="arrow" size={16} />
-              </Link>
-            </div>
-          </details>
-        );
-      })}
-      <p className="tiny muted" style={{ margin: "2px 4px 0" }}>
-        Simple rules about your own logs, not a diagnosis. Feeling very unwell? Contact a healthcare provider, or call 911 in an emergency.
+                <Icon name="chevronDown" size={18} className="chev" />
+              </summary>
+              <div className="stack-3" style={{ padding: "0 16px 16px 64px" }}>
+                <p className="small">{f.patientMessage}</p>
+                {f.latestReview ? (
+                  <p className="small" style={{ color: "var(--src-clinician)", fontWeight: 600 }}>
+                    {f.latestReview.practitionerName} reviewed this on {formatDateTime(f.latestReview.createdAt, timeZone)}
+                    {f.status === "new_info" ? ". You've added entries since." : "."}
+                  </p>
+                ) : (
+                  <p className="small muted">{shared ? "Your care team can see this. Not reviewed yet." : "Your diary is private, so nobody else was notified."}</p>
+                )}
+                <Link href={`/me/entries?highlight=${encodeURIComponent(f.evidenceIds.join(","))}`} className="link-btn small">
+                  See the entries behind this <Icon name="arrow" size={16} />
+                </Link>
+              </div>
+            </details>
+          );
+        })}
+      </div>
+      <p className="tiny faint" style={{ padding: "0 4px" }}>
+        Not a diagnosis. If you feel very unwell, contact a healthcare provider, or call 911 in an emergency.
       </p>
     </section>
   );

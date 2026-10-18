@@ -8,7 +8,7 @@ export function SignOutButton() {
   const [busy, setBusy] = useState(false);
   return (
     <button
-      className="btn btn-ghost btn-sm"
+      type="button" className="link-btn" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontWeight: 600 }}
       disabled={busy}
       onClick={async () => {
         setBusy(true);
@@ -17,7 +17,7 @@ export function SignOutButton() {
         router.refresh();
       }}
     >
-      <Icon name="out" size={18} /> Sign out
+      <Icon name="out" size={18} /> {busy ? "Signing out…" : "Sign out"}
     </button>
   );
 }

@@ -1,8 +1,8 @@
 import { AppBar } from "@/components/AppBar";
 import { BristolArt } from "@/components/BristolArt";
 import { Icon } from "@/components/Icon";
-import { Mascot } from "@/components/Mascot";
 import { PrintButton } from "@/components/PrintButton";
+import { Womby } from "@/components/Womby";
 import { getConfig } from "@/lib/config";
 import { BRISTOL, contextLabel, symptomLabel } from "@/lib/domain";
 import { getPatientOverview } from "@/lib/records";
@@ -30,55 +30,56 @@ export default async function Visit() {
   const flags = o.flags.filter((f) => localDay(f.windowEnd, tz) >= start);
 
   const stats = [
-    { v: mv.length, l: "logs", tint: "tint-butter" },
-    { v: `${days.size}/14`, l: "days logged", tint: "tint-sky" },
-    { v: list.filter((e) => e.kind === "no_movement").length, l: "confirmed none", tint: "tint-lavender" },
-    { v: list.filter((e) => e.bloodReport === "yes").length, l: "red/black reports", tint: "tint-blush" },
+    { v: mv.length, l: "bathroom trips" },
+    { v: `${days.size}/14`, l: "days logged" },
+    { v: list.filter((e) => e.kind === "no_movement").length, l: "confirmed none" },
+    { v: list.filter((e) => e.bloodReport === "yes").length, l: "red/black reports" },
   ];
 
   return (
-    <main id="main" className="screen">
-      <AppBar title="Visit notes" back="/me/sharing" right={<PrintButton />} />
-      <div className="stack-lg">
-        <section className="hero-card" aria-label="Summary for">
-          <div className="hero-body stack-sm" style={{ maxWidth: "70%" }}>
+    <main id="main" className="p-main fade-in">
+      <AppBar title="Visit notes" back="/me/settings" right={<PrintButton />} />
+      <div className="stack-6">
+        <section className="card row" style={{ gap: "var(--s-4)" }} aria-label="Summary for">
+          <div className="grow stack-1">
             <span className="eyebrow">Two-week summary</span>
-            <h2 className="hero-title" style={{ fontSize: "var(--t-xl)" }}>
-              {user.name}
-            </h2>
-            <p className="small" style={{ margin: 0, color: "var(--ink-2)" }}>
+            <h2 style={{ fontSize: "var(--fs-24)" }}>{user.name}</h2>
+            <p className="small muted" style={{ margin: 0 }}>
               {formatDayLabel(start)} to {formatDayLabel(today)}
             </p>
-            <span className="glass-chip" style={{ alignSelf: "flex-start" }}>
-              Self-reported{user.isSynthetic ? " · fictional demo data" : ""}
-            </span>
+            <div className="row wrap" style={{ gap: 6, marginTop: 4 }}>
+              <span className="badge badge-patient">
+                <Icon name="user" /> Self-reported
+              </span>
+              {user.isSynthetic && <span className="badge badge-demo">Fictional demo data</span>}
+            </div>
           </div>
-          <div className="hero-mascot">
-            <Mascot mood="happy" size={110} bob={false} />
-          </div>
+          <span className="no-print">
+            <Womby pose="encouraging" size={72} />
+          </span>
         </section>
 
-        <section className="grid-2" aria-label="At a glance">
+        <section className="card stats" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", rowGap: "var(--s-4)" }} aria-label="At a glance">
           {stats.map((s) => (
-            <div key={s.l} className={`card stat ${s.tint}`} style={{ border: 0, padding: 14 }}>
-              <span className="stat-value">{s.v}</span>
-              <span className="stat-label">{s.l}</span>
+            <div key={s.l}>
+              <div className="stat-value">{s.v}</div>
+              <div className="stat-label">{s.l}</div>
             </div>
           ))}
         </section>
-        <p className="tiny muted" style={{ margin: "-10px 4px 0" }}>
+        <p className="tiny faint" style={{ margin: "-12px 4px 0" }}>
           Days with no log are unknown, not &ldquo;none&rdquo;. Colour unsure: {list.filter((e) => e.bloodReport === "unsure").length}.
         </p>
 
-        <section className="card stack-sm" aria-labelledby="v-shapes">
-          <h2 id="v-shapes" style={{ fontSize: "var(--t-lg)" }}>
-            Shapes
+        <section className="card stack-3" aria-labelledby="v-shapes">
+          <h2 id="v-shapes" style={{ fontSize: "var(--fs-16)" }}>
+            Stool types
           </h2>
           {typed.length ? (
             <div className="row wrap" style={{ gap: 8 }}>
               {BRISTOL.filter((b) => typed.some((e) => e.bristolType === b.type)).map((b) => (
-                <span key={b.type} className="pill" style={{ height: "auto", padding: "6px 10px" }}>
-                  <BristolArt type={b.type} size={28} /> Type {b.type} <strong>×{typed.filter((e) => e.bristolType === b.type).length}</strong>
+                <span key={b.type} className="chip" aria-pressed="false" style={{ cursor: "default" }}>
+                  <BristolArt type={b.type} size={22} /> Type {b.type} <strong>×{typed.filter((e) => e.bristolType === b.type).length}</strong>
                 </span>
               ))}
             </div>
@@ -87,11 +88,11 @@ export default async function Visit() {
               None recorded.
             </p>
           )}
-          <h3 style={{ fontSize: "var(--t-md)", marginTop: 8 }}>Symptoms</h3>
+          <h3 style={{ fontSize: "var(--fs-15)", marginTop: 4 }}>Symptoms</h3>
           {sym.size ? (
-            <div className="chips">
+            <div className="row wrap" style={{ gap: 8 }}>
               {[...sym.entries()].map(([s, n]) => (
-                <span key={s} className="pill">
+                <span key={s} className="chip" aria-pressed="false" style={{ cursor: "default" }}>
                   {symptomLabel(s)} <strong>×{n}</strong>
                 </span>
               ))}
@@ -101,40 +102,41 @@ export default async function Visit() {
               None reported.
             </p>
           )}
-          <p className="tiny muted" style={{ margin: 0 }}>
+          <p className="tiny faint" style={{ margin: 0 }}>
             Answered on {list.filter((e) => e.symptoms !== null).length} logs.
           </p>
         </section>
 
         {flags.length > 0 && (
-          <section className="stack-sm" aria-labelledby="v-flags">
-            <div className="section-head">
-              <h2 id="v-flags">Things Gut Feeling noticed</h2>
+          <section className="stack-2" aria-labelledby="v-flags">
+            <div className="row between" style={{ padding: "0 4px" }}>
+              <h2 id="v-flags" className="eyebrow">
+                Patterns Gut Feeling noticed
+              </h2>
+              <span className="badge badge-rule">Simple rules</span>
             </div>
-            <div className="list">
+            <div className="group">
               {flags.map((f) => (
-                <div key={f.key} className="list-row">
-                  <div className="row-main" style={{ cursor: "default", alignItems: "flex-start" }}>
-                    <span className={`insight-icon ${f.severity}`} aria-hidden style={{ width: 36, height: 36, borderRadius: 12 }}>
-                      <Icon name="alert" size={18} />
-                    </span>
-                    <div className="grow">
-                      <div className="row-title">{f.title}</div>
-                      <div className="small muted">{f.whatChanged}</div>
-                    </div>
+                <div key={f.key} className="item" style={{ alignItems: "flex-start" }}>
+                  <span className="item-icon" style={{ background: "var(--butter)", color: "var(--butter-ink)" }}>
+                    <Icon name="flag" size={18} />
+                  </span>
+                  <div className="grow">
+                    <div className="item-title">{f.title}</div>
+                    <div className="item-sub">{f.whatChanged}</div>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="tiny muted" style={{ margin: "0 4px" }}>
+            <p className="tiny faint" style={{ margin: "0 4px" }}>
               From simple rules on my own logs. Not a diagnosis.
             </p>
           </section>
         )}
 
         {(ctx.length > 0 || notes.length > 0) && (
-          <section className="card stack-sm" aria-labelledby="v-notes">
-            <h2 id="v-notes" style={{ fontSize: "var(--t-lg)" }}>
+          <section className="card stack-2" aria-labelledby="v-notes">
+            <h2 id="v-notes" style={{ fontSize: "var(--fs-16)" }}>
               Context and notes
             </h2>
             {ctx.map((e) => (
@@ -144,14 +146,14 @@ export default async function Visit() {
             ))}
             {notes.map((e) => (
               <div key={`n-${e.id}`} className="small">
-                <span className="muted">{formatDateTime(e.occurredAt, tz)}</span> <span className="quote">&ldquo;{e.notes}&rdquo;</span>
+                <span className="muted">{formatDateTime(e.occurredAt, tz)}</span> &ldquo;{e.notes}&rdquo;
               </div>
             ))}
           </section>
         )}
 
-        <section className="card tint-butter stack-sm" style={{ border: 0 }} aria-labelledby="v-q">
-          <h2 id="v-q" style={{ fontSize: "var(--t-lg)" }}>
+        <section className="card stack-2" style={{ background: "var(--butter)", borderColor: "transparent" }} aria-labelledby="v-q">
+          <h2 id="v-q" style={{ fontSize: "var(--fs-16)" }}>
             Questions to ask
           </h2>
           {["Is this pattern worth watching, or acting on?", "Could my medicines or recent changes be relevant?", "What should make me call sooner?"].map((q) => (

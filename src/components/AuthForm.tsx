@@ -1,12 +1,15 @@
 "use client";
 import { useState } from "react";
+import { Icon } from "./Icon";
 
 export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const signup = mode === "signup";
   return (
     <form
-      className="stack"
+      className="mk-form"
+      aria-busy={busy}
       onSubmit={async (ev) => {
         ev.preventDefault();
         setBusy(true);
@@ -26,7 +29,7 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         setBusy(false);
       }}
     >
-      {mode === "signup" && (
+      {signup && (
         <div className="field">
           <label htmlFor="name">What should we call you?</label>
           <input id="name" name="name" type="text" autoComplete="given-name" required maxLength={60} />
@@ -34,29 +37,30 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
       )}
       <div className="field">
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" autoComplete="email" required />
+        <input id="email" name="email" type="email" autoComplete="email" inputMode="email" spellCheck={false} required />
       </div>
       <div className="field">
         <label htmlFor="password">
-          Password {mode === "signup" && <span className="faint" style={{ fontWeight: 500 }}>(10+ characters)</span>}
+          Password {signup && <span className="label-hint">(10+ characters)</span>}
         </label>
         <input
           id="password"
           name="password"
           type="password"
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          autoComplete={signup ? "new-password" : "current-password"}
           required
-          minLength={mode === "signup" ? 10 : 1}
+          minLength={signup ? 10 : 1}
         />
       </div>
       {error && (
         <p className="form-error" role="alert">
-          {error}
+          <Icon name="alert" size={18} />
+          <span>{error}</span>
         </p>
       )}
-      <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={busy} style={{ marginTop: 6 }}>
+      <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={busy}>
         {busy && <span className="spinner" aria-hidden />}
-        {mode === "signin" ? "Sign in" : "Create my private diary"}
+        {signup ? "Create my private diary" : "Sign in"}
       </button>
     </form>
   );

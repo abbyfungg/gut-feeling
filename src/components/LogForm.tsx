@@ -1,11 +1,11 @@
 "use client";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { BRISTOL, CONTEXT_TAGS, SYMPTOMS, bristolInfo, type BloodReport, type ContextId, type SymptomId } from "@/lib/domain";
 import { BristolArt } from "./BristolArt";
 import { Icon } from "./Icon";
-import { Mascot } from "./Mascot";
+import { Womby } from "./Womby";
+import { CONTEXT_ICON, SYMPTOM_ICON } from "./patient/meta";
 
 type AiState =
   | { kind: "idle" }
@@ -18,6 +18,7 @@ function toLocalInput(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** One calm, guided form. Only the shape matters; everything else is optional and "skipped" stays "unknown". */
 export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
   const router = useRouter();
   const [when, setWhen] = useState<"now" | "earlier">("now");
@@ -34,7 +35,6 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
   const [qualityTip, setQualityTip] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const toggle = <T extends string>(list: T[] | null, id: T): T[] | null => {
@@ -64,7 +64,7 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
 
   async function analyze(file: File) {
     const lum = await brightness(file);
-    setQualityTip(lum == null ? null : lum < 45 ? "This photo looks quite dark. Turning on a light or the flash usually helps." : lum > 235 ? "This photo looks very bright or washed out. Try without the flash." : null);
+    setQualityTip(lum == null ? null : lum < 45 ? "This photo looks quite dark. Turning on a light usually helps." : lum > 235 ? "This photo looks washed out. Try without the flash." : null);
     setAi({ kind: "busy" });
     if (preview) URL.revokeObjectURL(preview);
     setPreview(URL.createObjectURL(file));
@@ -73,9 +73,9 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
     fd.append("photo", file);
     const res = await fetch("/api/analyze", { method: "POST", body: fd }).catch(() => null);
     const body = res ? await res.json().catch(() => ({})) : {};
-    if (!res) return setAi({ kind: "error", message: "Couldn't reach the server. Pick the type that looks closest." });
+    if (!res) return setAi({ kind: "error", message: "You seem to be offline, so the photo wasn't sent. Pick the closest type above instead." });
     if (!res.ok || (body.status !== "ok" && body.status !== "unclassifiable")) {
-      return setAi({ kind: "error", message: body.message ?? body.error ?? "Photo help didn't work this time. Pick the type that looks closest." });
+      return setAi({ kind: "error", message: body.message ?? body.error ?? "Photo analysis didn't work this time. Pick the closest type above; your entry will save normally." });
     }
     const r = body.result;
     setAi({
@@ -123,83 +123,141 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
     const body = res ? await res.json().catch(() => ({})) : {};
     if (res?.ok) {
       clearPhoto();
-      router.push("/me?saved=1");
+      router.push(`/me/saved?id=${encodeURIComponent(body.entry?.id ?? "")}`);
       router.refresh();
       return;
     }
     if (res?.status === 400 && aiRef && /analysis has expired/.test(body.error ?? "")) {
       clearPhoto();
-      setError("That photo suggestion expired, so we've removed it. Everything else you picked is still here; tap Save again.");
-    } else setError(body.error ?? "We couldn't save that. Check your connection and try again.");
+      setError("The photo suggestion expired, so we removed it. Everything else is still here. Tap Save again.");
+    } else if (!res) setError("You seem to be offline. Your answers are still here; try again when you're connected.");
+    else setError(body.error ?? "We couldn't save that. Please try again.");
     setSaving(false);
   }
 
   const aiType = ai.kind === "result" ? ai.estimatedType : null;
-  const STEPS = 4;
-  const last = step === STEPS - 1;
-  const answered = [true, blood !== null, symptoms !== null, true][step];
-  const go = (n: number) => {
-    setStep(Math.max(0, Math.min(STEPS - 1, n)));
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const chosen = bristolInfo(type);
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (last) save();
-        else go(step + 1);
+        save();
       }}
-      className="stack-lg"
-      style={{ paddingTop: 14 }}
+      aria-label="Log a bathroom trip"
     >
-      <div className="wizard-top">
-        <Link href="/me" className="icon-btn" aria-label="Close without saving">
-          <Icon name="x" />
-        </Link>
-        <div className="progress" role="progressbar" aria-label="Progress" aria-valuemin={1} aria-valuemax={STEPS} aria-valuenow={step + 1}>
-          <span style={{ width: `${((step + 1) / STEPS) * 100}%` }} />
+      <section className="log-section" aria-labelledby="sec-when">
+        <header>
+          <h2 id="sec-when">When</h2>
+        </header>
+        <div className="segmented" role="group" aria-label="When did it happen" style={{ width: "100%" }}>
+          <button type="button" aria-pressed={when === "now"} onClick={() => setWhen("now")}>
+            Just now
+          </button>
+          <button type="button" aria-pressed={when === "earlier"} onClick={() => setWhen("earlier")}>
+            Earlier
+          </button>
         </div>
-        <span className="small bold muted" style={{ minWidth: 34, textAlign: "right" }}>
-          {step + 1}/{STEPS}
-        </span>
-      </div>
-
-      {step === 0 && (
-        <div className="screen stack" key="s0">
-          <div>
-            <h1 className="step-title">What did it look like?</h1>
-            <p className="muted small" style={{ margin: "6px 0 0" }}>
-              Pick the closest shape. Not sure is fine too.
-            </p>
+        {when === "earlier" && (
+          <div className="field">
+            <label htmlFor="when">Date and time</label>
+            <input id="when" type="datetime-local" value={earlier} max={nowInput} onChange={(e) => setEarlier(e.target.value)} required />
           </div>
+        )}
+      </section>
 
-          {aiEnabled ? (
-            <div className="stack-sm">
-              <label className="photo-cta">
-                {preview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={preview} alt="Your photo (blurred for privacy)" className={`photo-thumb${peek ? " peek" : ""}`} />
-                ) : (
-                  <span className="cta-icon">
-                    <Icon name="camera" size={24} />
-                  </span>
-                )}
-                <span className="grow">
-                  <span className="bold" style={{ display: "block" }}>
-                    {preview ? "Use a different photo" : "Snap a photo"}
-                  </span>
-                  <span className="tiny" style={{ opacity: 0.75 }}>
-                    Gemini suggests a shape. Photo is never stored.
-                  </span>
+      <section className="log-section" aria-labelledby="sec-type">
+        <header>
+          <h2 id="sec-type">Stool type</h2>
+          <span className="optional">Bristol scale</span>
+        </header>
+        <fieldset>
+          <legend className="sr-only">Which looks closest?</legend>
+          <div className="bristol">
+            {BRISTOL.map((b) => (
+              <label key={b.type} className="bristol-opt" title={`${b.nickname}: ${b.description}`}>
+                <input type="radio" name="bristol" value={b.type} checked={type === b.type} onChange={() => setType(b.type)} aria-label={`Type ${b.type}, ${b.nickname}`} />
+                {aiType === b.type && <span className="bristol-ai">AI</span>}
+                <BristolArt type={b.type} size={36} />
+                <span className="bristol-num">{b.type}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div className="bristol-detail" aria-live="polite">
+          {chosen ? (
+            <>
+              <span className={`entry-art ${chosen.group}`}>
+                <BristolArt type={chosen.type} size={36} />
+              </span>
+              <span className="grow">
+                <span className="strong" style={{ display: "block" }}>
+                  Type {chosen.type} · {chosen.nickname}
                 </span>
-                <Icon name="chevron" size={18} />
+                <span className="small muted">{chosen.description}</span>
+              </span>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setType(null)}>
+                Clear
+              </button>
+            </>
+          ) : (
+            <>
+              <Womby pose="curious" size={42} />
+              <span className="small muted">Pick the closest shape. Not sure? Leave it blank or try a photo.</span>
+            </>
+          )}
+        </div>
+      </section>
+
+      <section className="log-section" aria-labelledby="sec-photo">
+        <header>
+          <h2 id="sec-photo">Photo analysis</h2>
+          <span className="optional">Optional · AI</span>
+        </header>
+        {aiEnabled ? (
+          <>
+            {preview ? (
+              <div className="row">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={preview} alt="Your photo, blurred for privacy" className={`photo-thumb${peek ? " peek" : ""}`} />
+                <div className="stack-1 grow">
+                  <span className="small muted">Kept only on this screen. Never stored.</span>
+                  <div className="row-2 wrap">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPeek((p) => !p)}>
+                      {peek ? "Blur" : "Peek"}
+                    </button>
+                    <label className="btn btn-ghost btn-sm" style={{ cursor: "pointer" }}>
+                      Retake
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/heic"
+                        capture="environment"
+                        className="sr-only"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) analyze(f);
+                        }}
+                      />
+                    </label>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={clearPhoto}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <label className="photo-drop">
+                <Icon name="camera" size={26} />
+                <span className="strong" style={{ color: "var(--text)" }}>
+                  Tap to add or take a photo
+                </span>
+                <span className="small">AI suggests a type. You decide. The photo is never stored.</span>
                 <input
                   ref={fileRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/heic"
                   capture="environment"
-                  className="visually-hidden"
+                  className="sr-only"
                   aria-label="Take or choose a photo"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
@@ -207,227 +265,152 @@ export function LogForm({ aiEnabled }: { aiEnabled: boolean }) {
                   }}
                 />
               </label>
-              {preview && (
-                <div className="row" style={{ gap: 6 }}>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPeek((p) => !p)}>
-                    {peek ? "Blur it again" : "Peek at photo"}
-                  </button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={clearPhoto}>
-                    Remove photo
-                  </button>
+            )}
+            <div aria-live="polite" className="stack-2">
+              {qualityTip && (
+                <p className="notice notice-warn">
+                  <Icon name="sun" size={16} /> {qualityTip}
+                </p>
+              )}
+              {ai.kind === "busy" && (
+                <div className="ai-panel">
+                  <div className="row">
+                    <Womby pose="thinking" size={42} />
+                    <div className="stack-1">
+                      <span className="strong">Taking a careful look…</span>
+                      <span className="small muted">This usually takes a few seconds.</span>
+                    </div>
+                  </div>
                 </div>
               )}
-              <div aria-live="polite" className="stack-sm">
-                {qualityTip && <p className="notice notice-med" style={{ margin: 0 }}>{qualityTip}</p>}
-                {ai.kind === "busy" && (
-                  <div className="ai-card row" style={{ gap: 10 }}>
-                    <span className="spinner" aria-hidden /> Taking a careful look…
+              {ai.kind === "error" && (
+                <p className="notice notice-info" role="status">
+                  <Icon name="info" size={16} /> {ai.message}
+                </p>
+              )}
+              {ai.kind === "result" && (
+                <div className="ai-panel">
+                  <div className="ai-title">
+                    <Icon name="sparkle" size={16} /> AI estimate · not a diagnosis
                   </div>
-                )}
-                {ai.kind === "error" && <p className="notice notice-info" style={{ margin: 0 }}>{ai.message}</p>}
-                {ai.kind === "result" && (
-                  <div className="ai-card stack-sm">
-                    <div className="row" style={{ gap: 8 }}>
-                      <Icon name="sparkle" size={18} />
-                      {ai.status === "ok" && ai.estimatedType ? (
-                        <strong>
-                          Looks like type {ai.estimatedType}: {bristolInfo(ai.estimatedType)?.nickname}
-                        </strong>
-                      ) : (
-                        <strong>{ai.message}</strong>
-                      )}
-                    </div>
-                    {ai.status === "ok" && ai.estimatedType && (
-                      <div className="row wrap" style={{ gap: 6 }}>
-                        <span className="pill pill-lav">{ai.confidence} confidence</span>
-                        <span className="tiny">Selected below. Change it if it&apos;s off.</span>
-                      </div>
-                    )}
-                    {ai.observations.length > 0 && (
-                      <ul style={{ margin: 0, paddingLeft: 18 }}>
-                        {ai.observations.map((o, i) => (
-                          <li key={i}>{o}</li>
-                        ))}
-                      </ul>
-                    )}
-                    <p className="tiny" style={{ margin: 0, opacity: 0.85 }}>
-                      AI estimate, not a diagnosis. {ai.limitations}
+                  {ai.status === "ok" && ai.estimatedType ? (
+                    <p>
+                      <strong>Looks closest to type {ai.estimatedType}</strong> ({bristolInfo(ai.estimatedType)?.nickname}), {ai.confidence} confidence. We&apos;ve selected it
+                      above. Change it if it doesn&apos;t look right.
                     </p>
-                    {ai.colorAttention && (
-                      <p className="tiny" style={{ margin: 0 }}>
-                        Colours are hard to judge in photos. If you noticed red or black yourself, say so on the next step.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <p>
+                      <strong>{ai.message ?? "Couldn't tell from this photo."}</strong>
+                    </p>
+                  )}
+                  {ai.observations.length > 0 && (
+                    <ul style={{ paddingLeft: 18 }} className="small">
+                      {ai.observations.map((o, i) => (
+                        <li key={i}>{o}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="tiny muted">{ai.limitations}</p>
+                  {ai.colorAttention && <p className="tiny">Colours are hard to judge in photos. If you noticed red or black yourself, say so below.</p>}
+                </div>
+              )}
             </div>
-          ) : (
-            <p className="tiny muted row" style={{ margin: 0, gap: 6 }}>
-              <Icon name="info" size={14} /> Photo help isn&apos;t switched on for this server. Picking a shape works just as well.
-            </p>
-          )}
-
-          <fieldset>
-            <legend className="visually-hidden">Which looks closest?</legend>
-            <div className="shape-grid">
-              {BRISTOL.map((b) => (
-                <label key={b.type} className="shape" data-group={b.group}>
-                  <input type="radio" name="bristol" value={b.type} checked={type === b.type} onChange={() => setType(b.type)} />
-                  {aiType === b.type && <span className="pill pill-lav ai-badge">AI pick</span>}
-                  <span className="shape-art">
-                    <BristolArt type={b.type} size={64} />
-                  </span>
-                  <span className="shape-num">Type {b.type}</span>
-                  <span className="shape-name">{b.nickname}</span>
-                  <span className="shape-desc">{b.description}</span>
-                </label>
-              ))}
-              <label className="shape" data-group="skip">
-                <input type="radio" name="bristol" value="" checked={type === null} onChange={() => setType(null)} />
-                <span className="shape-art">
-                  <span aria-hidden style={{ fontSize: 30, fontFamily: "var(--font-display)", fontWeight: 800, color: "var(--ink-3)" }}>
-                    ?
-                  </span>
-                </span>
-                <span className="shape-num">Skip</span>
-                <span className="shape-name">Not sure</span>
-                <span className="shape-desc">Log it without a type</span>
-              </label>
-            </div>
-          </fieldset>
-        </div>
-      )}
-
-      {step === 1 && (
-        <div className="screen stack" key="s1">
-          <div>
-            <h1 className="step-title">Any red or black colour?</h1>
-            <p className="muted small" style={{ margin: "6px 0 0" }}>
-              Beets, iron and some medicines can change colour too.
-            </p>
-          </div>
-          <div className="option-list" role="group" aria-label="Red or black colour">
-            {(
-              [
-                ["no", "No", "check", "tint-sage"],
-                ["yes", "Yes", "drop", "tint-blush"],
-                ["unsure", "Not sure", "info", "tint-butter"],
-              ] as const
-            ).map(([v, label, icon, tint]) => (
-              <button key={v} type="button" className="option" aria-pressed={blood === v} onClick={() => setBlood(blood === v ? null : v)}>
-                <span className={`opt-icon ${tint}`}>
-                  <Icon name={icon} />
-                </span>
-                {label}
-              </button>
-            ))}
-          </div>
-          {blood === "yes" && (
-            <p className="notice notice-high" style={{ margin: 0 }}>
-              Thanks for telling us. Please contact a healthcare provider soon. If there&apos;s a lot of blood or you feel faint or dizzy, get urgent care.
-            </p>
-          )}
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className="screen stack" key="s2">
-          <div>
-            <h1 className="step-title">How did you feel?</h1>
-            <p className="muted small" style={{ margin: "6px 0 0" }}>
-              Pick any, or skip. Skipping means &ldquo;didn&apos;t say&rdquo;.
-            </p>
-          </div>
-          <div className="chips">
-            <button type="button" className="chip positive" aria-pressed={symptoms !== null && symptoms.length === 0} onClick={() => setSymptoms(symptoms && symptoms.length === 0 ? null : [])}>
-              <Icon name="smile" size={16} /> Felt fine
-            </button>
-            {SYMPTOMS.map((s) => (
-              <button key={s.id} type="button" className="chip" aria-pressed={!!symptoms?.includes(s.id)} onClick={() => setSymptoms(toggle(symptoms, s.id))}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className="screen stack-lg" key="s3">
-          <div>
-            <h1 className="step-title">Anything else?</h1>
-            <p className="muted small" style={{ margin: "6px 0 0" }}>
-              All optional. Context helps spot patterns.
-            </p>
-          </div>
-          <fieldset className="stack-sm">
-            <legend className="label">When</legend>
-            <div className="segmented" role="group" aria-label="When did it happen">
-              <button type="button" aria-pressed={when === "now"} onClick={() => setWhen("now")}>
-                Just now
-              </button>
-              <button type="button" aria-pressed={when === "earlier"} onClick={() => setWhen("earlier")}>
-                Earlier
-              </button>
-            </div>
-            {when === "earlier" && (
-              <div className="field">
-                <label htmlFor="when">Date and time</label>
-                <input id="when" type="datetime-local" value={earlier} max={nowInput} onChange={(e) => setEarlier(e.target.value)} required />
-              </div>
-            )}
-          </fieldset>
-          <fieldset className="stack-sm">
-            <legend className="label">Going on lately</legend>
-            <div className="chips">
-              {CONTEXT_TAGS.map((c) => (
-                <button key={c.id} type="button" className="chip" aria-pressed={!!context?.includes(c.id)} onClick={() => setContext(toggle(context, c.id))}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-          <div className="field">
-            <label htmlFor="notes" className="label">
-              Notes <span className="hint">(visible to anyone you share with)</span>
-            </label>
-            <textarea id="notes" maxLength={1000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. tummy grumbled after lunch" />
-          </div>
-          <div className="card flat tint-butter row" style={{ gap: 12, border: 0 }}>
-            {type ? <BristolArt type={type} size={44} /> : <Mascot mood="think" size={40} bob={false} />}
-            <div className="small">
-              <div className="bold">{type ? `Type ${type}: ${bristolInfo(type)?.nickname}` : "No type picked (that's okay)"}</div>
-              <div className="muted tiny">
-                {[blood === "yes" ? "Red/black colour" : blood === "unsure" ? "Colour unsure" : blood === "no" ? "No red/black" : null, symptoms === null ? null : symptoms.length ? `${symptoms.length} symptom${symptoms.length > 1 ? "s" : ""}` : "Felt fine"]
-                  .filter(Boolean)
-                  .join(" · ") || "Nothing else added"}
-              </div>
-            </div>
-          </div>
-          {error && (
-            <p className="form-error" role="alert" style={{ margin: 0 }}>
-              {error}
-            </p>
-          )}
-        </div>
-      )}
-
-      <div className="wizard-bar">
-        {step > 0 && (
-          <button type="button" className="btn btn-secondary btn-lg" onClick={() => go(step - 1)} aria-label="Previous step">
-            <Icon name="back" />
-          </button>
-        )}
-        {last ? (
-          <button type="submit" className="btn btn-primary btn-lg grow" disabled={saving || ai.kind === "busy"}>
-            {saving && <span className="spinner" aria-hidden />}
-            Save to my diary
-          </button>
+          </>
         ) : (
-          <button type="submit" className="btn btn-primary btn-lg grow" disabled={ai.kind === "busy" && step === 0}>
-            {answered ? "Next" : "Skip"} <Icon name="arrow" />
-          </button>
+          <p className="notice">
+            <Icon name="info" size={16} />
+            <span>Photo analysis isn&apos;t set up on this server yet, so nothing is uploaded. Picking a type works just as well.</span>
+          </p>
         )}
+      </section>
+
+      <section className="log-section" aria-labelledby="sec-colour">
+        <header>
+          <h2 id="sec-colour">Any red or black colour?</h2>
+          <span className="optional">Optional</span>
+        </header>
+        <div className="segmented" role="group" aria-label="Red or black colour" style={{ width: "100%" }}>
+          {(
+            [
+              ["no", "No"],
+              ["yes", "Yes"],
+              ["unsure", "Not sure"],
+            ] as const
+          ).map(([v, label]) => (
+            <button key={v} type="button" aria-pressed={blood === v} onClick={() => setBlood(blood === v ? null : v)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {blood === "yes" ? (
+          <p className="notice notice-alert">
+            <Icon name="alert" size={16} />
+            <span>Thanks for noting it. Please contact a healthcare provider soon. If there&apos;s a lot of blood, or you feel faint or dizzy, get urgent care.</span>
+          </p>
+        ) : (
+          <p className="help">Beets, iron and some medicines can change colour too.</p>
+        )}
+      </section>
+
+      <section className="log-section" aria-labelledby="sec-symptoms">
+        <header>
+          <h2 id="sec-symptoms">Symptoms</h2>
+          <span className="optional">Optional</span>
+        </header>
+        <div className="symptoms">
+          <button type="button" className="symptom" aria-pressed={symptoms !== null && symptoms.length === 0} onClick={() => setSymptoms(symptoms && symptoms.length === 0 ? null : [])}>
+            <span className="symptom-icon">
+              <Icon name="smile" size={18} />
+            </span>
+            Felt fine
+          </button>
+          {SYMPTOMS.map((s) => (
+            <button key={s.id} type="button" className="symptom" aria-pressed={!!symptoms?.includes(s.id)} onClick={() => setSymptoms(toggle(symptoms, s.id))}>
+              <span className="symptom-icon">
+                <Icon name={SYMPTOM_ICON[s.id]} size={18} />
+              </span>
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <p className="help">Skipping means &ldquo;didn&apos;t say&rdquo;, not &ldquo;felt fine&rdquo;.</p>
+      </section>
+
+      <section className="log-section" aria-labelledby="sec-context">
+        <header>
+          <h2 id="sec-context">Anything going on lately?</h2>
+          <span className="optional">Optional</span>
+        </header>
+        <div className="chips">
+          {CONTEXT_TAGS.map((c) => (
+            <button key={c.id} type="button" className="chip" aria-pressed={!!context?.includes(c.id)} onClick={() => setContext(toggle(context, c.id))}>
+              <Icon name={CONTEXT_ICON[c.id]} size={16} />
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="log-section" aria-labelledby="sec-notes">
+        <header>
+          <h2 id="sec-notes">
+            <label htmlFor="notes">Notes</label>
+          </h2>
+          <span className="optional">Optional · visible to anyone you share with</span>
+        </header>
+        <textarea id="notes" maxLength={1000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. tummy grumbled after lunch" />
+      </section>
+
+      <div className="save-bar stack-2">
+        {error && (
+          <p className="form-error" role="alert">
+            <Icon name="alert" size={16} /> {error}
+          </p>
+        )}
+        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={saving || ai.kind === "busy"}>
+          {saving && <span className="spinner" aria-hidden />}
+          Save entry
+        </button>
       </div>
     </form>
   );
