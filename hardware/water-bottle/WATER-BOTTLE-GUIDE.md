@@ -2,7 +2,19 @@
 
 You'll tape a small motion sensor (the accelerometer) to a water bottle. Each time the bottle tips up for a drink and comes back down, the Arduino counts a sip. The red LEDs on the Arduino show how many sips you've had, and the buzzer beeps if you haven't had any for a while. The app later uses sips × ml-per-sip as an **estimate** of how much you drank. It's not a precise measurement, so the app always labels it as an estimate.
 
-**Total time for first-timers: about 2 to 2½ hours**, including a buffer for things going wrong. Each step lists its own time.
+## ✅ What to do next
+
+You've got the Arduino software installed and the board connected, so **Step 1 is done**. From here:
+
+- [ ] **Step 2: Wire it up** (15–20 min, USB unplugged)
+- [ ] **Step 3: Upload `bottle_test.ino`** and check you get a beep, four corner LEDs, `Accelerometer: …` and `tilt` going from 0 to about 90 when you tip it (15 min)
+- [ ] **Step 4: Tape the sensor to the bottle** (10 min)
+- [ ] **Step 5: Upload `water_bottle.ino`** and see the sip count go up when you drink (15–20 min)
+- [ ] **Step 6: Calibrate** ml per sip (15 min)
+- [ ] Optional: **Step 8: Go wireless** with a power bank (10 min)
+- [ ] Later: **Step 7: Send sips to the app** (once we push the app side)
+
+**Time left: about 1½ hours**, including a buffer for things going wrong.
 
 ---
 
@@ -17,12 +29,15 @@ You'll tape a small motion sensor (the accelerometer) to a water bottle. Each ti
 | 2 Grove jumper cables (Grove plug on one end, 4 loose pins on the other) | Connect the Grove boards to the Arduino |
 | Breadboard + 2 male-to-male wires | Lets both Grove boards share the Arduino's single 5V pin |
 | Water bottle, tape (electrical or duct), a small zip bag, a rubber band | Mounting |
+| USB power bank (optional) | Runs it without a laptop (Step 8) |
 
 You **don't** need the temperature/barometer sensor or the DC motor.
 
 ---
 
-## Step 1: Install the Arduino software (20–30 min)
+## Step 1: Install the Arduino software ✅ done
+
+You've already done this. It's kept here in case you set up another laptop.
 
 1. On a laptop, go to **arduino.cc/en/software** and download **Arduino IDE 2** for your computer. Install it and open it.
 2. Plug the Arduino into the laptop with the USB-C cable. A few red LEDs may light up. That's normal.
@@ -174,10 +189,24 @@ Do this once the app side is ready (it's built but not published yet; we'll tell
 
 ---
 
+## Step 8 (optional): Go wireless with a power bank (about 10 min)
+
+The UNO R4 WiFi doesn't need a laptop once the sketch is uploaded. The sketch stays on the board, and it runs as soon as it gets power.
+
+1. **Power:** plug the Arduino's USB-C into a **USB power bank** instead of the laptop. Any phone power bank works. (Some power banks switch off when very little power is drawn. If the LEDs go dark after a minute, press the power bank's button, or try a different one.)
+2. **Mount everything on the bottle:** put the Arduino and the breadboard in a zip bag (keep it away from water), then strap it to the side of the bottle with rubber bands and tape. The accelerometer stays taped to the bottle as in Step 4. The power bank can go in the same bag or in your pocket with a longer cable.
+3. **Start it upright:** after plugging in the power bank, stand the bottle upright and still for 2 seconds while it calibrates (you'll see the water drop, then `0`).
+4. **Wi-Fi (only for sending to the app, Step 7):** the board joins Wi-Fi on its own. At a hackathon the venue Wi-Fi often blocks devices or needs a login page, which the Arduino can't do. Use a **phone hotspot** instead: 2.4 GHz, and on iPhone turn on **Maximise Compatibility**. Put that hotspot's name and password in `WIFI_SSID` / `WIFI_PASS`.
+
+Without Wi-Fi it still counts sips, shows the count and beeps reminders. It just doesn't send them anywhere.
+
+---
+
 ## Troubleshooting
 
 | What you see | Try |
 | --- | --- |
+| Boards Manager fails with `dial tcp: lookup downloads.arduino.cc: no such host` | Your laptop can't reach Arduino's download server, usually because of the network (venue Wi-Fi often blocks it). Switch the laptop to a **phone hotspot** and click Install again. Still failing? Restart the Arduino IDE, or set your laptop's DNS to `8.8.8.8` (Google) and retry. It's a big download (a few hundred MB), so keep the laptop awake until it finishes. |
 | No port in Tools > Port | Different USB-C cable (data, not charge-only), or another USB port |
 | Upload fails | Check Tools > Board says UNO R4 WiFi and the right port is picked. Press RESET twice quickly, then upload again. |
 | Serial Monitor shows gibberish | Set the speed to 115200 baud |
@@ -187,6 +216,7 @@ Do this once the app side is ready (it's built but not published yet; we'll tell
 | Sips count when I just pick the bottle up | Raise `TILT_SIP` or `MIN_SIP_MS` (Step 6) |
 | Count is wrong after moving the bottle around | Stand it upright and press RESET to recalibrate |
 | Wi-Fi fails (Step 7) | 2.4 GHz only. Check the name and password; try a phone hotspot. |
+| On a power bank the LEDs turn off after a while | The power bank went to sleep because the board uses so little power. Try another power bank, or one with an "always on" or low-current mode. |
 | "Couldn't reach the app" | The free server sleeps. Open the site in a browser to wake it, wait a minute, then sip again. |
 
 ---
@@ -195,14 +225,15 @@ Do this once the app side is ready (it's built but not published yet; we'll tell
 
 | Step | Time |
 | --- | --- |
-| 1. Install Arduino software and test Blink | 20–30 min |
+| 1. Install Arduino software and test Blink | ✅ done |
 | 2. Wiring | 15–20 min |
 | 3. First test sketch | 15 min |
 | 4. Mount on the bottle | 10 min |
 | 5. Full sketch | 15–20 min |
 | 6. Calibrate | 15 min |
 | Buffer for problems | 30 min |
-| **Total** | **about 2 to 2½ hours** |
+| **Left to do** | **about 1½ hours** |
+| 8. Go wireless (optional) | 10 min |
 | 7. Connect to the app (later) | 20–30 min |
 
 Sources checked for the wiring: [Seeed Grove 3-axis accelerometer (LIS3DHTR) wiki](https://wiki.seeedstudio.com/Grove-3-Axis-Digital-Accelerometer-LIS3DHTR) (I2C address 0x19, 3–5V), [Seeed Grove buzzer wiki](https://wiki.seeedstudio.com/Grove-Buzzer/) (sounds when SIG is HIGH, D6 example, 3.3–5V), [UNO R4 WiFi pinout](https://lastminuteengineers.com/arduino-uno-r4-wifi-pinout-reference/) (SDA/SCL = A4/A5 on the 5V header; the Qwiic plug is a separate 3.3V bus).
