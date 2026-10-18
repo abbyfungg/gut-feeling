@@ -13,8 +13,7 @@ The bottle is built and counting sips. 🎉
 - [x] **Step 3: Upload `bottle_test.ino`**
 - [x] **Step 4: Tape the sensor to the bottle**
 - [x] **Step 5: Upload `water_bottle.ino`**
-- [ ] Next: **Step 6: Send sips to the app** over USB with `usb-bridge.mjs` (about 5 min, no Wi-Fi)
-- [ ] Optional: **Step 7: Go wireless** with a power bank (10 min)
+- [ ] Next: **Step 6: Send sips to the app** over USB with `usb-bridge.mjs` (about 5 min)
 
 No calibration needed: every sip counts as a fixed **30 ml**, and the app labels the total as an estimate.
 
@@ -24,12 +23,11 @@ No calibration needed: every sip counts as a fixed **30 ml**, and the app labels
 
 | Part | Used for |
 | --- | --- |
-| Arduino UNO R4 WiFi (blue board with the red LED grid) | The brain, the LED display, and Wi-Fi later |
-| USB-C cable | Power and uploading code from a laptop |
+| Arduino UNO R4 WiFi (blue board with the red LED grid) | The brain and the LED display |
+| USB-C cable (data, not charge-only) | Power, uploading code, and sending sips to the app |
 | Grove 3-axis accelerometer | Senses when the bottle tips |
 | 1 Grove jumper cable (Grove plug on one end, 4 loose pins on the other) | Connects the accelerometer to the Arduino |
 | Water bottle, tape (electrical or duct), a small zip bag, a rubber band | Mounting |
-| USB power bank (optional) | Runs it without a laptop (Step 7) |
 
 You **don't** need the buzzer, the breadboard, the temperature/barometer sensor or the DC motor.
 
@@ -123,79 +121,39 @@ If any of that doesn't happen, see **Troubleshooting** at the bottom before movi
 ## Step 5: Upload the full sketch (15–20 min)
 
 1. **File > Open…** and open `water_bottle/water_bottle.ino`.
-2. Leave `SEND_TO_APP` at `0` for now. Everything works without Wi-Fi.
-3. **For a demo**, change the reminder line to one minute so judges see it:
+2. **For a demo**, change the reminder line to one minute so judges see it:
    ```
    #define REMIND_MS     (60UL * 1000UL)
    ```
-4. Click **Upload**, open the Serial Monitor, and press **RESET** with the bottle standing upright and still.
-5. You'll see `Ready. Drink away!` in the Serial Monitor, a water drop then a `0` on the LED grid, and the **L** LED blinks twice.
-6. Pick up the bottle, tip it like you're drinking (about a second or more), and put it back down upright. You should get:
+3. Click **Upload**, open the Serial Monitor, and press **RESET** with the bottle standing upright and still.
+4. You'll see `Ready. Drink away!` in the Serial Monitor, a water drop then a `0` on the LED grid, and the **L** LED blinks twice.
+5. Pick up the bottle, tip it like you're drinking (about a second or more), and put it back down upright. You should get:
    - the LED grid number goes up by 1 and the **L** LED blinks once,
    - `Sip #1 … Estimated total: 30 ml` in the Serial Monitor.
-7. Leave it alone for the reminder time. The Serial Monitor prints `Reminder: time for a sip of water.`, the **L** LED blinks 3 times, and the water drop flashes on the grid.
+6. Leave it alone for the reminder time. The Serial Monitor prints `Reminder: time for a sip of water.`, the **L** LED blinks 3 times, and the water drop flashes on the grid.
 
 ---
 
-## Step 6 (wired, recommended): Send sips to the app over USB (about 5 min)
+## Step 6: Send sips to the app over USB (about 5 min)
 
-No Wi-Fi needed. The bottle stays plugged into your Mac, and a small script on the Mac sends each sip to the app.
+The bottle stays plugged into your Mac with the USB cable, and a small script on the Mac (`usb-bridge.mjs`) sends each sip to the app on Render. There's no Wi-Fi.
 
-1. Upload `water_bottle.ino` as usual (leave `SEND_TO_APP` at `0`). **Close the Serial Monitor** afterwards, because only one program can use the USB port.
-2. In the app: **More > Water bottle > Pair a bottle**. Keep the screen open; you need the `DEVICE_TOKEN` (starts with `gfd_`) and the `SERVER_HOST` it shows.
-3. Open **Terminal** (Cmd+Space, type Terminal, Enter) and go to this folder, for example:
+1. Upload `water_bottle.ino`, then **close the Serial Monitor** (only one program can use the USB port at a time).
+2. In the app, sign in as the patient and go to **More > Water bottle > Pair a bottle**. It shows one command with your pairing code in it. Copy it. (A redeploy wipes pairings, so after a redeploy pair again.)
+3. Open **Terminal** (Cmd+Space, type Terminal, Enter) and go to this folder:
    ```
    cd ~/Downloads/gut-feeling/hardware/water-bottle
    ```
    (Or type `cd `, drag the `water-bottle` folder into the Terminal window, press Enter.)
 4. Check Node is installed: `node -v` should print v18 or higher. If not, install the LTS from nodejs.org.
-5. Run it, pasting your own values:
+5. Paste the command from the app and press Enter. It looks like:
    ```
-   GF_SERVER=https://SERVER_HOST_FROM_THE_APP GF_TOKEN=gfd_YOUR_CODE node usb-bridge.mjs
+   GF_SERVER=https://your-app.onrender.com GF_TOKEN=gfd_YOUR_CODE node usb-bridge.mjs
    ```
-   It finds the Arduino by itself. If it says "No Arduino found", run `ls /dev/cu.usbmodem*` and add `GF_PORT=/dev/cu.usbmodemXXXX` at the front.
-6. You should see `Listening to /dev/cu.usbmodem…`, then `Sent: total 0 sips` (the app now says **Online**). Take a sip: `Sent: total 1 sips … +1 new (30 ml)`, and it appears in the app within a few seconds.
+   It finds the Arduino by itself.
+6. You'll see `Listening to /dev/cu.usbmodem…`, then `board: GF boot=… total=0 ml=0` and `app: 200 OK`. The app now says **Online**. Take a sip: `board: GF boot=… total=1 ml=30`, then `app: 200 OK, +1 new sip (30 ml) saved`. Refresh the water screen and it's there.
 
-Stop it with **Ctrl+C**. Restarting the script restarts the board, which is fine: nothing is double counted. Don't paste the code in chat or save it in a file you commit.
-
-## Step 6 (Wi-Fi, optional): Send sips to the app (20–30 min)
-
-The app side is live on main. After a redeploy, pair again (a redeploy wipes pairings).
-
-1. In the app, sign in and go to **More > Water bottle > Pair a bottle**. Copy the four lines it shows.
-2. In `water_bottle.ino`, set `#define SEND_TO_APP 1`. Paste the four lines over **only** the 4 matching lines (`SERVER_HOST`, `SERVER_PORT`, `USE_TLS`, `DEVICE_TOKEN`). Keep the `WIFI_SSID` and `WIFI_PASS` lines and fill them in with your hotspot's name and password. The UNO R4 only joins **2.4 GHz** Wi-Fi. A phone hotspot works well (on iPhone, turn on "Maximise Compatibility").
-3. Upload. Each sip now appears in the app within a few seconds.
-
-**Don't commit the sketch after filling in Wi-Fi and the pairing code.** They're secrets.
-
----
-
-## Step 7 (optional): Go wireless with a power bank (about 10 min)
-
-The UNO R4 WiFi doesn't need a laptop once the sketch is uploaded. The sketch stays on the board, and it runs as soon as it gets power.
-
-1. **Power:** plug the Arduino's USB-C into a **USB power bank** instead of the laptop. Any phone power bank works. (Some power banks switch off when very little power is drawn. If the LEDs go dark after a minute, press the power bank's button, or try a different one.)
-2. **Mount everything on the bottle:** put the Arduino in a zip bag (keep it away from water), then strap it to the side of the bottle with rubber bands and tape. The accelerometer stays taped to the bottle as in Step 4. The power bank can go in the same bag or in your pocket with a longer cable.
-3. **Start it upright:** after plugging in the power bank, stand the bottle upright and still for 2 seconds while it gets ready (you'll see the water drop, then `0`).
-4. **Wi-Fi (only for sending to the app, Step 6):** the board joins Wi-Fi on its own. At a hackathon the venue Wi-Fi often blocks devices or needs a login page, which the Arduino can't do. Use a **phone hotspot** instead: 2.4 GHz, and on iPhone turn on **Maximise Compatibility**. Put that hotspot's name and password in `WIFI_SSID` / `WIFI_PASS`.
-
-Without Wi-Fi it still counts sips, shows the count and flashes reminders. It just doesn't send them anywhere.
-
----
-
-## Wi-Fi keeps failing
-
-With `SEND_TO_APP 1`, the Serial Monitor (115200 baud) now explains each try. Press RESET and read it:
-
-| It says | What it means and what to do |
-| --- | --- |
-| `can't see that network name` | The board can't find your hotspot. Check the list under **Networks the board can see**. If your hotspot isn't there: on iPhone turn on **Maximise Compatibility** (Settings > Personal Hotspot) and keep that screen open; on Android set the hotspot band to **2.4 GHz**. Move the phone next to the board. |
-| Your hotspot is in the list but it still fails | `WIFI_SSID` must match the name in the list exactly, including capitals, spaces and apostrophes. Easiest: rename the hotspot to something plain like `gutbottle` (on iPhone, rename the phone in Settings > General > About > Name). |
-| `the network refused it` | Wrong `WIFI_PASS`. Retype it; use a simple password with no special characters. |
-| `the Wi-Fi chip isn't answering` | Unplug USB, plug it back in. If it keeps happening, update the firmware (next row). |
-| `Update it: … Firmware Updater` | The Wi-Fi chip's firmware is older than the library expects. Use Arduino IDE 2.2.1 or newer: close the Serial Monitor, then **Tools > Firmware Updater**, pick **UNO R4 WiFi**, click **Check Updates**, choose the newest version, click **Install**, wait for "Firmware successfully installed", then unplug and replug the board and upload `water_bottle.ino` again (installing the firmware wipes the sketch). |
-
-At power-on it tries for about 40 seconds. After that it keeps counting sips and retries every 30 seconds, so sips made while Wi-Fi is down are sent once it connects, and never counted twice.
+The board prints a `GF` line when it starts and then every minute, so if nothing shows yet, wait a minute or press RESET on the board. Stop the script with **Ctrl+C**. Restarting the script or the board never double counts. Don't paste the pairing code in chat or commit it.
 
 ---
 
@@ -215,10 +173,11 @@ At power-on it tries for about 40 seconds. After that it keeps counting sips and
 | Sips count when I just pick the bottle up | Raise `TILT_SIP` (e.g. 60) or `MIN_SIP_MS` (e.g. 900) |
 | Laying the bottle down counts as a sip | Lower `MAX_SIP_MS` (e.g. 8000) |
 | Count is wrong after moving the bottle around | Stand it upright and press RESET so it re-learns which way is up |
-| `'WIFI_SSID' was not declared in this scope` | The Wi-Fi lines got deleted when pasting the pairing code. Add `#define WIFI_SSID "your-hotspot-name"` and `#define WIFI_PASS "your-hotspot-password"` back under `#define SEND_TO_APP 1`. |
-| Wi-Fi fails (Step 6) | See **Wi-Fi keeps failing** above. |
-| On a power bank the LEDs turn off after a while | The power bank went to sleep because the board uses so little power. Try another power bank, or one with an "always on" or low-current mode. |
-| "Couldn't reach the app" | The free server sleeps. Open the site in a browser to wake it, wait a minute, then sip again. |
+| `No Arduino found` | Use a data USB cable and plug it straight into the Mac. Run `ls /dev/cu.usbmodem*` and put `GF_PORT=/dev/cu.usbmodemXXXX` at the front of the command. |
+| `it's in use` | Close the Arduino IDE's Serial Monitor (or quit the Arduino IDE). The script reconnects by itself. |
+| `No lines from the board yet` | Wait a minute (it prints every minute) or press RESET. Check `water_bottle.ino` (not `bottle_test`) is the sketch uploaded. |
+| `app: couldn't reach …` | The free server sleeps. Open the site in a browser to wake it. The script keeps retrying and sends the latest total once it's up. |
+| `app: 401` | The pairing code is old (a redeploy wipes them). Pair again in the app and run the new command. |
 
 ---
 
@@ -227,7 +186,6 @@ At power-on it tries for about 40 seconds. After that it keeps counting sips and
 | Step | Time |
 | --- | --- |
 | 1–5. Build the bottle | ✅ done |
-| 6. Connect to the app | 20–30 min |
-| 7. Go wireless (optional) | 10 min |
+| 6. Connect to the app | 5 min |
 
 Sources checked for the wiring: [Seeed Grove 3-axis accelerometer (LIS3DHTR) wiki](https://wiki.seeedstudio.com/Grove-3-Axis-Digital-Accelerometer-LIS3DHTR) (I2C address 0x19, 3–5V), [Seeed Grove Base Shield V2 wiki](https://wiki.seeedstudio.com/Base_Shield_V2/) (4 I2C ports; set the switch to 5V with an UNO), [Cirkit Designer Base Shield V2 reference](https://docs.cirkitdesigner.com/component/970281f8-3f5b-4db5-bd0c-88e0889d3bf4/grove-base-shield-v2) (I2C ports use A4 SDA / A5 SCL), [Arduino: update the UNO R4 WiFi connectivity firmware](https://support.arduino.cc/hc/en-us/articles/9670986058780-Update-the-connectivity-module-firmware-on-UNO-R4-WiFi), [UNO R4 WiFi pinout](https://lastminuteengineers.com/arduino-uno-r4-wifi-pinout-reference/) (SDA/SCL = A4/A5 on the 5V header; the Qwiic plug is a separate 3.3V bus).

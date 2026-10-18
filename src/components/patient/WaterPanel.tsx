@@ -114,7 +114,6 @@ export function WaterPanel({ initial, initialPairing, today, insight }: { initia
     const m = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60_000));
     return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
   };
-  const [hostName, hostPort] = (newToken?.host ?? "").split(":");
 
   return (
     <div className="stack-6">
@@ -182,19 +181,19 @@ export function WaterPanel({ initial, initialPairing, today, insight }: { initia
             {state === "none" ? "Not paired" : state === "waiting" ? "Waiting for your bottle" : state === "online" ? "Online" : "Offline"}
           </span>
         </div>
-        {state === "waiting" && <p className="small" style={{ margin: 0 }}>Paired, but your bottle hasn&apos;t sent anything yet. Upload the sketch with the code below and switch it on.</p>}
+        {state === "waiting" && <p className="small" style={{ margin: 0 }}>Paired, but your bottle hasn&apos;t sent anything yet. Plug it into your laptop and run the command below in Terminal.</p>}
         {(state === "online" || state === "offline") && pairing.lastSeenAt && (
           <p className="small muted" style={{ margin: 0 }} suppressHydrationWarning>
-            Last heard from your bottle {ago(pairing.lastSeenAt)}.{state === "offline" ? " It checks in every 5 minutes when it's on and on Wi-Fi." : ""}
+            Last heard from your bottle {ago(pairing.lastSeenAt)}.{state === "offline" ? " It checks in every few minutes while it's plugged into your laptop and usb-bridge.mjs is running." : ""}
           </p>
         )}
         <p className="small muted">
-          An Arduino with a motion sensor taped to the bottle counts sips and sends them over Wi-Fi with its own pairing code, which can only add water to your diary.
+          An Arduino with a motion sensor taped to the bottle counts sips. Keep it plugged into your laptop with USB, and a small script (usb-bridge.mjs) sends them here with its own pairing code, which can only add water to your diary.
         </p>
         {newToken && (
           <div className="notice notice-warn stack-2" role="status">
-            <strong>Copy these into water_bottle.ino now (and set SEND_TO_APP to 1). The code is shown only once.</strong>
-            <pre className="pair-code">{`#define SERVER_HOST  "${hostName}"\n#define SERVER_PORT  ${hostPort || (newToken.secure ? 443 : 80)}\n#define USE_TLS      ${newToken.secure ? 1 : 0}\n#define DEVICE_TOKEN "${newToken.token}"`}</pre>
+            <strong>Run this in Terminal, in the hardware/water-bottle folder. The code is shown only once, so copy it now.</strong>
+            <pre className="pair-code">{`GF_SERVER=${newToken.secure ? "https" : "http"}://${newToken.host} GF_TOKEN=${newToken.token} node usb-bridge.mjs`}</pre>
           </div>
         )}
         <div className="row wrap" style={{ gap: 8 }}>

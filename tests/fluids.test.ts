@@ -88,7 +88,7 @@ describe("water logging and the bottle", () => {
     // Reply lost, so the board sends the same totals again, and again on its 5-minute check-in: nothing new
     expect(send({ boot: "a1", total: 2, totalMl: 60 })).toEqual({ sips: 0, ml: 0 });
     expect(send({ boot: "a1", total: 2, totalMl: 60 })).toEqual({ sips: 0, ml: 0 });
-    // Wi-Fi was down for 3 sips; they go out together when it reconnects
+    // the laptop was offline for 3 sips; they go out together when it reconnects
     expect(send({ boot: "a1", total: 5, totalMl: 150 })).toEqual({ sips: 3, ml: 90 });
     // An older upload arriving late changes nothing
     expect(send({ boot: "a1", total: 4, totalMl: 120 })).toEqual({ sips: 0, ml: 0 });
