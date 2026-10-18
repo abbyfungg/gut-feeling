@@ -82,6 +82,29 @@ CREATE TABLE IF NOT EXISTS reviews (
   completed_at TEXT
 );
 CREATE INDEX IF NOT EXISTS reviews_patient ON reviews(patient_id, flag_key);
+
+-- Device pairing (the water bottle). Only a hash of the device token is stored; the patient sees it once.
+CREATE TABLE IF NOT EXISTS device_tokens (
+  id TEXT PRIMARY KEY,
+  patient_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL,
+  last_seen_at TEXT,
+  revoked_at TEXT
+);
+
+-- Fluid intake. "bottle" amounts are estimates from sip counts; "simulated" comes from the in-app
+-- simulator or synthetic demo data and is always labelled as such.
+CREATE TABLE IF NOT EXISTS hydration_events (
+  id TEXT PRIMARY KEY,
+  patient_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  source TEXT NOT NULL CHECK (source IN ('bottle','manual','simulated')),
+  occurred_at TEXT NOT NULL,
+  sips INTEGER NOT NULL DEFAULT 0,
+  ml INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS hydration_patient_time ON hydration_events(patient_id, occurred_at);
 `;
 
 type G = typeof globalThis & { __gutDb?: DatabaseSync; __gutDbFile?: string };

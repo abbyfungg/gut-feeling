@@ -1,6 +1,7 @@
 import { AiUnavailableError, explainFlag, getGeminiModel, logAiFailure } from "@/lib/ai/gemini";
 import { rateLimit } from "@/lib/auth";
 import { getConfig } from "@/lib/config";
+import { fluidDays } from "@/lib/fluids";
 import { getPatientOverview } from "@/lib/records";
 import { json, withApi } from "@/lib/session";
 
@@ -17,7 +18,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (!rateLimit(`explain:${user.id}`, 60, 60 * 60_000)) return json({ error: "Too many explanations this hour." }, 429);
     const started = Date.now();
     try {
-      const explanation = await explainFlag(model, { flag, entries: overview.entries, timeZone: getConfig().timezone });
+      const explanation = await explainFlag(model, {
+        flag,
+        entries: overview.entries,
+        timeZone: getConfig().timezone,
+        fluids: flag.rule === "hard_despite_fluids" ? fluidDays(id, getConfig().timezone, new Date(), 14) : undefined,
+      });
       return json({ status: "ok", explanation });
     } catch (e) {
       if (e instanceof AiUnavailableError) {

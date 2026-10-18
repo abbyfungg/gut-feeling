@@ -74,6 +74,7 @@ export default async function Settings() {
               sub={active.length ? `Shared with ${active.map((s) => s.practitioner.name).join(" and ")}` : "Private to you"}
               tint="sky"
             />
+            <LinkItem href="/me/water" icon="water" title="Water bottle" sub="Track water, or try the simulator" tint="sky" />
             <LinkItem href="/me/visit" icon="clipboard" title="Visit notes" sub="A printable two-week summary" tint="peach" />
             <LinkItem
               href="/privacy"

@@ -2,7 +2,7 @@ import type { Entry } from "../domain";
 import { contextLabel, symptomLabel } from "../domain";
 import { addDays, dayRange, DAY, formatDateTime, formatDayLabel, localDay } from "../time";
 import { DEFAULT_RULE_CONFIG, type RuleConfig } from "./config";
-import type { ContextNote, DataNotice, Flag, RuleResult } from "./types";
+import type { ContextNote, DataNotice, Flag, FluidDay, RuleResult } from "./types";
 
 /**
  * Deterministic review rules. Pure function of the stored entries, the current time and config:
@@ -13,6 +13,7 @@ export function evaluateRules(
   now: Date,
   timeZone: string,
   config: RuleConfig = DEFAULT_RULE_CONFIG,
+  fluids: FluidDay[] = [],
 ): RuleResult {
   const cutoff = now.getTime() - config.lookbackDays * DAY;
   const entries = allEntries
@@ -233,6 +234,46 @@ export function evaluateRules(
           ruleDescription: `Mean type over the last ${b.recentDays} days differs from the prior ${b.baselineDays}-day mean by ≥ ${b.minMeanDifference} (needs ≥ ${b.minRecentEntries} recent and ≥ ${b.minBaselineEntries} baseline entries).`,
         });
       }
+    }
+  }
+
+  // 7. Hard stools on several days even though the person was drinking well. Water alone may not
+  //    explain it, so it's worth a clinician look (medicines, fibre, activity, other causes).
+  if (config.hardDespiteFluids.enabled && fluids.length) {
+    const c = config.hardDespiteFluids;
+    const windowStart = addDays(today, -(c.windowDays - 1));
+    const ml = new Map(fluids.map((f) => [f.day, f]));
+    // Fluids that day or the day before count (stool reflects the previous day's intake too).
+    const wellHydrated = (day: string) => Math.max(ml.get(day)?.ml ?? 0, ml.get(addDays(day, -1))?.ml ?? 0) >= c.minMlPerDay;
+    const hard = movements.filter((m) => m.bristolType != null && m.bristolType <= c.maxType && localDay(m.occurredAt, timeZone) >= windowStart);
+    const qualifying = hard.filter((m) => wellHydrated(localDay(m.occurredAt, timeZone)));
+    const days = [...new Set(qualifying.map((m) => localDay(m.occurredAt, timeZone)))];
+    if (days.length >= c.minHardDays) {
+      const first = qualifying[0];
+      const last = qualifying[qualifying.length - 1];
+      const intakeDays = fluids.filter((f) => f.day >= windowStart && f.day <= today && f.ml > 0);
+      const avg = intakeDays.length ? intakeDays.reduce((a, f) => a + f.ml, 0) / intakeDays.length : 0;
+      const estimated = intakeDays.some((f) => f.estimated);
+      const simulated = intakeDays.some((f) => f.simulated);
+      const source = simulated ? "simulated bottle data" : estimated ? "water-bottle estimate" : "patient-logged";
+      flags.push({
+        key: `hard_despite_fluids:${first.id}`,
+        rule: "hard_despite_fluids",
+        severity: "medium",
+        title: "Hard stools despite adequate fluid intake",
+        patientTitle: "Still hard, even though you're drinking well",
+        whatChanged: `Bristol type 1–2 on ${days.length} days (${formatDayLabel(days[0])} to ${formatDayLabel(days[days.length - 1])}) while logged fluids averaged ${(avg / 1000).toFixed(1)} L/day over ${intakeDays.length} days (${source}).`,
+        windowStart: first.occurredAt,
+        windowEnd: last.occurredAt,
+        evidenceIds: qualifying.map((m) => m.id),
+        context: contextFor(first.occurredAt, last.occurredAt),
+        patientMessage:
+          "You've been drinking plenty, but your stools are still hard. When water isn't the reason, something else can be, like a medicine, not much fibre, or moving less. It's worth mentioning to your care team.",
+        suggestedFollowUp:
+          "Review recent medications and supplements (for example opioids, iron, calcium, anticholinergics), fibre intake and activity. Consider whether further assessment is needed under your local protocol.",
+        caveat: `Fluid amounts are ${estimated ? "estimated from sip counts and can be off" : "self-reported"}${simulated ? "; this demo uses simulated bottle data" : ""}. Not a diagnosis.`,
+        ruleDescription: `≥ ${c.minHardDays} days with type ${c.maxType} or lower in ${c.windowDays} days, each with ≥ ${(c.minMlPerDay / 1000).toFixed(1)} L of logged fluids that day or the day before.`,
+      });
     }
   }
 

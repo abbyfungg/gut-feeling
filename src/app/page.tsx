@@ -99,6 +99,7 @@ export default async function Landing() {
                       { label: "I'm Maya", sub: "Patient view", email: DEMO_ACCOUNTS.patient, kind: "patient" },
                       { label: "I'm Nurse Priya", sub: "Care-team view", email: DEMO_ACCOUNTS.practitioner, kind: "care" },
                       { label: "I'm Walter", sub: "Caught-early story", email: DEMO_ACCOUNTS.story, kind: "patient" },
+                      { label: "I'm Nora", sub: "Water bottle + hard stools", email: DEMO_ACCOUNTS.fluids, kind: "patient" },
                     ]}
                   />
                 </div>

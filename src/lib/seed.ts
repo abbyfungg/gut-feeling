@@ -15,6 +15,7 @@ export const DEMO_ACCOUNTS = {
   practitioner: "priya@demo.gutfeeling.health",
   otherPractitioner: "okafor@demo.gutfeeling.health",
   story: "walter@demo.gutfeeling.health",
+  fluids: "nora@demo.gutfeeling.health",
 } as const;
 
 let seededChecked = false;
@@ -33,6 +34,7 @@ export function ensureSeeded() {
   const has = (email: string) => getDb().prepare("SELECT id FROM users WHERE email = ?").get(email) as { id: string } | undefined;
   const priya = has(DEMO_ACCOUNTS.practitioner);
   if (priya && !has(DEMO_ACCOUNTS.story)) transaction(() => seedStoryPatient(new Date(), priya.id));
+  if (priya && !has(DEMO_ACCOUNTS.fluids)) transaction(() => seedFluidsPatient(new Date(), priya.id));
 }
 
 export function resetSeedFlagForTests() {
@@ -195,6 +197,7 @@ export function seedDemoData(now: Date) {
 
 
     seedStoryPatient(now, priya.id);
+    seedFluidsPatient(now, priya.id);
   });
 }
 
@@ -342,5 +345,43 @@ export function seedStoryPatient(now: Date, priyaId: string) {
       reviewedAt,
       doneAt,
     );
+  }
+}
+
+/**
+ * Nora: hard stools even though she's drinking plenty. Her water comes from the in-app simulator,
+ * so it is stored as "simulated" and labelled that way everywhere. She started iron tablets 9 days ago,
+ * which the care team can spot as timing context (never as a stated cause).
+ */
+export function seedFluidsPatient(now: Date, priyaId: string) {
+  const tz = getConfig().timezone;
+  const today = localDay(now, tz);
+  const db = getDb();
+  const { insert, steady } = seedHelpers(db, tz, today, now);
+  const nora = createUser({ email: DEMO_ACCOUNTS.fluids, name: "Nora Lindqvist", role: "patient", about: "63 · tracks water with a smart bottle (simulated in this demo)", password: DEMO_PASSWORD, isSynthetic: true });
+  db.prepare("INSERT INTO care_links (id, patient_id, practitioner_id, status, granted_at, revoked_at) VALUES (?, ?, ?, 'active', ?, NULL)").run(newId("cl"), nora.id, priyaId, zoned(addDays(today, -35), 10, 0, tz));
+  insert(nora.id, [
+    ...steady(57, 29, 10, [4, 4, 3, 4, 4], [1]),
+    { daysAgo: 9, hour: 9, type: 4, context: ["medication_change"], notes: "Started iron tablets for low iron." },
+    { daysAgo: 8, hour: 8, minute: 40, type: 3 },
+    { daysAgo: 7, hour: 9, type: 3 },
+    { daysAgo: 6, hour: 8, minute: 30, type: 2, symptoms: [] },
+    { daysAgo: 5, hour: 9, minute: 15, type: 3, symptoms: [] },
+    { daysAgo: 4, hour: 8, minute: 50, type: 1, symptoms: ["straining", "discomfort"], notes: "Drinking lots of water and it's still hard." },
+    { daysAgo: 3, hour: 9, minute: 20, type: 2, symptoms: ["straining"] },
+    { daysAgo: 1, hour: 8, minute: 45, type: 2, symptoms: ["straining"] },
+  ]);
+  // Simulated bottle sips: about 1.2 L a day before, about 2 L a day since she started drinking more.
+  const r = rng(91);
+  const ins = db.prepare("INSERT INTO hydration_events (id, patient_id, source, occurred_at, sips, ml, created_at) VALUES (?, ?, 'simulated', ?, ?, ?, ?)");
+  for (let d = 29; d >= 0; d--) {
+    const target = d <= 7 ? 1900 + r() * 400 : 1050 + r() * 300;
+    const n = 10;
+    for (let i = 0; i < n; i++) {
+      const at = zoned(addDays(today, -d), 8 + Math.floor((i * 12) / n), Math.floor(r() * 60), tz);
+      if (new Date(at) > now) continue;
+      const sips = Math.max(1, Math.round(target / n / 30));
+      ins.run(newId("hy"), nora.id, at, sips, sips * 30, at);
+    }
   }
 }

@@ -39,6 +39,7 @@ export default async function SignIn() {
                   { label: "Maya", sub: "Patient view", email: DEMO_ACCOUNTS.patient, kind: "patient" },
                   { label: "Nurse Priya", sub: "Care-team view", email: DEMO_ACCOUNTS.practitioner, kind: "care" },
                   { label: "Walter", sub: "Caught-early story", email: DEMO_ACCOUNTS.story, kind: "patient" },
+                  { label: "Nora", sub: "Water bottle demo", email: DEMO_ACCOUNTS.fluids, kind: "patient" },
                   { label: "Dr. Okafor", sub: "Second practitioner", email: DEMO_ACCOUNTS.otherPractitioner, kind: "care" },
                 ]}
               />

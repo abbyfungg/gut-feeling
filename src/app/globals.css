@@ -1904,3 +1904,26 @@ a.entry:hover {
 .pc-strain-key { color: var(--g-hard); font-size: 11px; }
 .pc-table summary { cursor: pointer; color: var(--muted, #6b7280); }
 .pc-table ul { margin: 6px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 2px; }
+
+/* ---------- water bottle ---------- */
+.effort-big { white-space: nowrap; font-size: 56px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--primary-ink); }
+.effort-big small { font-size: 20px; font-weight: 600; color: var(--muted, #6b7280); letter-spacing: 0; }
+.squeeze-btn {
+  width: 150px; height: 150px; margin: 8px auto; display: grid; place-items: center; border-radius: 50%;
+  border: 0; cursor: pointer; user-select: none; font-weight: 700; font-size: var(--fs-16, 16px); color: var(--on-primary);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--sky-ink) 65%, white), var(--sky-ink));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--sky-ink) 30%, transparent), inset 0 -8px 16px rgba(0, 0, 0, 0.15);
+  transition: transform 0.1s ease;
+}
+.squeeze-btn:active { transform: scale(0.94); }
+.squeeze-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
+.pair-code { white-space: pre-wrap; word-break: break-all; font-size: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 0; }
+.water-week { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 150px; }
+.water-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+.water-col i { display: block; width: 60%; max-width: 28px; border-radius: 4px 4px 0 0; background: var(--sky-ink); }
+.water-col i.sim { background: repeating-linear-gradient(45deg, var(--sky-ink) 0 4px, color-mix(in srgb, var(--sky-ink) 55%, transparent) 4px 8px); }
+.water-val { font-size: 11px; color: var(--muted, #6b7280); font-variant-numeric: tabular-nums; min-height: 14px; }
+.water-day { font-size: 11px; color: var(--muted, #6b7280); height: 14px; }
+.water-well { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--line-strong, #bbb); pointer-events: none; }
+.water-well span { position: absolute; right: 0; top: -14px; font-size: 10px; color: var(--muted, #6b7280); }
+.water-mini { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }

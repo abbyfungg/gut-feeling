@@ -4,7 +4,17 @@ export type FlagRule =
   | "no_movement"
   | "hard_stools"
   | "severe_symptoms"
-  | "baseline_shift";
+  | "baseline_shift"
+  | "hard_despite_fluids";
+
+/** Fluid intake for one local day (from the water bottle, the simulator, or glasses the person added). */
+export interface FluidDay {
+  day: string;
+  ml: number;
+  /** "estimate" when any of it came from sip counting, which is approximate */
+  estimated: boolean;
+  simulated: boolean;
+}
 
 export type FlagSeverity = "high" | "medium";
 

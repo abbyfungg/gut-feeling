@@ -235,6 +235,51 @@ const stamp = `e2e note ${Date.now()}`;
   await ctx.close();
 }
 
+// ---- Water bottle: Nora's flag, simulator, bottle pairing, care view ----
+{
+  const { ctx, page } = await newPage({ width: 390, height: 844 });
+  await page.goto(BASE + "/signin");
+  await page.getByLabel("Email").fill("nora@demo.gutfeeling.health");
+  await page.getByLabel("Password").fill("everybodypoops");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.waitForURL("**/me");
+  check(await page.getByText("Drinking well, but still hard").isVisible(), "Nora's Womby note says she's drinking well but still hard");
+  check(await page.getByText(/simulated sips/).first().isVisible(), "home water card is labelled simulated");
+  await shot(page, "60-nora-home");
+  await page.goto(BASE + "/me/water");
+  const before = await page.locator(".effort-big").textContent();
+  for (let i = 0; i < 4; i++) await page.getByRole("button", { name: /Take a sip/ }).click();
+  await page.waitForTimeout(500);
+  check((await page.locator(".effort-big").textContent()) !== before, "simulator sips add to today's water");
+  await page.getByRole("button", { name: /Pair a bottle|Make a new pairing code/ }).click();
+  const code = await page.locator(".pair-code").textContent({ timeout: 5000 });
+  const token = code?.match(/gfd_[A-Za-z0-9_-]+/)?.[0];
+  check(!!token, "bottle pairing shows a code once");
+  const send = (body, t = token) => fetch(BASE + "/api/device/ingest", { method: "POST", headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  check((await send({ sips: 1 }, "gfd_" + "z".repeat(32))).status === 401, "unknown bottle code rejected (401)");
+  check((await send({ sips: -3 })).status === 400, "bad bottle payload rejected (400)");
+  check((await send({ sips: 2, ml: 60 })).status === 200, "bottle sips accepted");
+  await page.locator(".badge", { hasText: "From your bottle" }).first().waitFor({ timeout: 6000 }).catch(() => {});
+  check(await page.locator(".badge", { hasText: "From your bottle" }).first().isVisible(), "bottle sips show up live, labelled as an estimate");
+  await shot(page, "61-water");
+  await page.getByRole("button", { name: "Unpair" }).click();
+  await page.waitForTimeout(400);
+  check((await send({ sips: 1 })).status === 401, "unpaired bottle code stops working");
+  await ctx.close();
+
+  const n = await newPage();
+  await n.page.goto(BASE + "/signin");
+  await n.page.getByLabel("Email").fill("priya@demo.gutfeeling.health");
+  await n.page.getByLabel("Password").fill("everybodypoops");
+  await n.page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await n.page.waitForURL("**/care");
+  await n.page.goto(`${BASE}/care/patients/${idOf("nora@demo.gutfeeling.health")}`);
+  check((await n.page.getByText("Hard stools despite adequate fluid intake").count()) > 0, "care side shows the hard-despite-fluids flag");
+  check(await n.page.getByRole("heading", { name: "Fluids, last 7 days" }).isVisible(), "care side shows the patient's fluids");
+  await shot(n.page, "62-care-nora");
+  await n.ctx.close();
+}
+
 // ---- Installable app + signed-out access ----
 {
   const { ctx, page } = await newPage();

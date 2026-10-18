@@ -1,3 +1,5 @@
+import { WeekBars } from "@/components/patient/WaterPanel";
+import { fluidDays } from "@/lib/fluids";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AiSummary } from "@/components/AiSummary";
@@ -67,6 +69,7 @@ export default async function CarePatient({
   const savedFlag = sp.saved ? o.flags.find((f) => f.key === sp.saved && f.latestReview) : undefined;
   const flagTitle = Object.fromEntries(o.flags.map((f) => [f.key, f.title]));
   const t = o.trends;
+  const fluids = fluidDays(o.patient.id, tz, now, 7);
   const latest = o.entries[0];
   const openFollowUps = o.reviews.filter((r) => r.followUpStatus === "open").length;
 
@@ -255,6 +258,24 @@ export default async function CarePatient({
             </div>
 
             <aside className="prail" aria-label="Summary">
+              {fluids.length > 0 && (
+                <section className="panel" aria-labelledby="fluids-h">
+                  <div className="panel-head">
+                    <h2 id="fluids-h">Fluids, last 7 days</h2>
+                    <span className="meta">{fluids.some((f) => f.simulated) ? "Simulated" : fluids.some((f) => f.estimated) ? "Bottle estimate" : "Patient-logged"}</span>
+                  </div>
+                  <div className="panel-body stack-2">
+                    <WeekBars week={fluids} today={localDay(now, tz)} />
+                    <p className="tiny muted">
+                      {fluids.some((f) => f.simulated)
+                        ? "Synthetic demo data from the in-app simulator, not a real device."
+                        : fluids.some((f) => f.estimated)
+                          ? "Estimated from sip counts on the patient's water bottle. Can be off."
+                          : "Glasses the patient added themselves."}
+                    </p>
+                  </div>
+                </section>
+              )}
               <section className="panel" aria-labelledby="latest-h">
                 <div className="panel-head">
                   <h2 id="latest-h">Most recent entry</h2>

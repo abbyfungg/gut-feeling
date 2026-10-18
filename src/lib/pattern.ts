@@ -1,4 +1,5 @@
 import type { ContextId, Entry, SymptomId } from "./domain";
+import type { FluidDay } from "./rules/types";
 import { addDays, localDay } from "./time";
 
 /**
@@ -17,7 +18,7 @@ export interface PatternDay {
   entryIds: string[];
 }
 
-export type FindingKind = "harder" | "looser" | "gap" | "straining" | "context";
+export type FindingKind = "harder" | "looser" | "gap" | "straining" | "fluids" | "context";
 
 export interface Finding {
   kind: FindingKind;
@@ -50,7 +51,7 @@ function listTypes(types: number[]) {
   return `types ${types.slice(0, -1).join(", ")} and ${types[types.length - 1]}`;
 }
 
-export function describePattern(all: Entry[], asOf: Date, timeZone: string, windowDays = 14): PatternSummary {
+export function describePattern(all: Entry[], asOf: Date, timeZone: string, windowDays = 14, fluids: FluidDay[] = []): PatternSummary {
   const cutoff = asOf.getTime();
   const entries = all.filter((e) => new Date(e.occurredAt).getTime() <= cutoff).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
   const today = localDay(asOf, timeZone);
@@ -128,6 +129,23 @@ export function describePattern(all: Entry[], asOf: Date, timeZone: string, wind
     });
   }
 
+  // Drinking well but still hard: water alone may not be the reason.
+  if (hard.length >= 2 && fluids.length) {
+    const ml = new Map(fluids.map((f) => [f.day, f]));
+    const hardDays = [...new Set(hard.map((e) => localDay(e.occurredAt, timeZone)))];
+    const amounts = hardDays.map((d) => Math.max(ml.get(d)?.ml ?? 0, ml.get(addDays(d, -1))?.ml ?? 0));
+    const avg = amounts.reduce((a, b) => a + b, 0) / amounts.length;
+    if (avg >= 1500) {
+      const est = fluids.some((f) => f.simulated) ? "simulated bottle data" : fluids.some((f) => f.estimated) ? "bottle estimate" : "what you logged";
+      findings.push({
+        kind: "fluids",
+        title: "Drinking well, but still hard",
+        detail: `You had about ${(avg / 1000).toFixed(1)} L a day around those days (${est}). When water isn't the reason, something else can be, like a medicine or supplement, not much fibre, or moving less. Worth asking your care team.`,
+        entryIds: hard.map((e) => e.id),
+      });
+    }
+  }
+
   if (findings.length) {
     const windowStart = addDays(today, -13);
     const ctx = entries.filter((e) => localDay(e.occurredAt, timeZone) >= windowStart && (e.context ?? []).some((c) => c === "medication_change" || c === "low_fluids" || c === "diet_change"));
@@ -156,6 +174,14 @@ export const FIRMER_TIPS = [
   { icon: "clock", text: "Try the toilet at the same time each day, often after breakfast, without rushing." },
   { icon: "leaf", text: "Fruit, vegetables, oats or prunes add fibre, if they're part of your usual diet." },
   { icon: "pill", text: "Don't stop or change a medicine on your own. Ask your nurse or pharmacist first." },
+];
+
+/** When fluids look fine but stools stay hard, swap the water tip for these. */
+export const DRINKING_WELL_TIPS = [
+  { icon: "pill", text: "Ask your nurse or pharmacist whether any medicine or supplement could be the cause. Iron, some pain medicines and calcium often are." },
+  { icon: "leaf", text: "Fruit, vegetables, oats or prunes add fibre, if they're part of your usual diet." },
+  { icon: "activity", text: "A short, gentle walk can help get things moving." },
+  { icon: "clock", text: "Try the toilet at the same time each day, often after breakfast, without rushing." },
 ];
 
 /** Gentle ideas for a looser pattern. General guidance, not treatment. */

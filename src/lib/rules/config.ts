@@ -20,6 +20,8 @@ export interface RuleConfig {
     minRecentEntries: number;
     minMeanDifference: number;
   };
+  /** Hard stools on several days even though logged fluids looked adequate. */
+  hardDespiteFluids: { enabled: boolean; windowDays: number; minHardDays: number; maxType: number; minMlPerDay: number };
   loggingGap: { minDays: number };
   /** Days before a flag in which context tags (e.g. medication change) are mentioned as timing context. */
   contextLookbackDays: number;
@@ -40,6 +42,7 @@ export const DEFAULT_RULE_CONFIG: RuleConfig = {
     minRecentEntries: 3,
     minMeanDifference: 2,
   },
+  hardDespiteFluids: { enabled: true, windowDays: 7, minHardDays: 3, maxType: 2, minMlPerDay: 1500 },
   loggingGap: { minDays: 3 },
   contextLookbackDays: 7,
 };

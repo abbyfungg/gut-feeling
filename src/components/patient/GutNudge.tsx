@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { Womby } from "@/components/Womby";
-import { callName, FIRMER_TIPS, LOOSER_TIPS, type Finding } from "@/lib/pattern";
+import { callName, DRINKING_WELL_TIPS, FIRMER_TIPS, LOOSER_TIPS, type Finding } from "@/lib/pattern";
 
-const FINDING_ICON: Record<Finding["kind"], string> = { harder: "trend", looser: "trend", gap: "calendar", straining: "activity", context: "pill" };
+const FINDING_ICON: Record<Finding["kind"], string> = { harder: "trend", looser: "trend", gap: "calendar", straining: "activity", fluids: "water", context: "pill" };
 
 /**
  * Womby's early warning to the person themselves: what changed, in plain words, from their own entries,
@@ -25,9 +25,10 @@ export function GutNudge({
   const main = findings.filter((f) => f.kind !== "context");
   if (!main.length) return null;
   const firmer = findings.some((f) => f.kind === "harder" || f.kind === "gap" || f.kind === "straining");
-  const tips = firmer ? FIRMER_TIPS : findings.some((f) => f.kind === "looser") ? LOOSER_TIPS : [];
-  const lead =
-    findings.some((f) => f.kind === "gap") && findings.some((f) => f.kind === "harder")
+  const tips = findings.some((f) => f.kind === "fluids") ? DRINKING_WELL_TIPS : firmer ? FIRMER_TIPS : findings.some((f) => f.kind === "looser") ? LOOSER_TIPS : [];
+  const lead = findings.some((f) => f.kind === "fluids")
+    ? `${firstName}, you've been drinking well, but your stools are still hard. Here's what I noticed.`
+    : findings.some((f) => f.kind === "gap") && findings.some((f) => f.kind === "harder")
       ? `${firstName}, your gut has slowed down a lot this week. Here's exactly what I noticed in your log.`
       : `${firstName}, something's changed in your log this week. Here's what I noticed.`;
 

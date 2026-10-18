@@ -6,6 +6,7 @@ import { newId } from "./auth";
 import type { Entry, StoredAiAnalysis } from "./domain";
 import { decisionLabel, REVIEW_DECISIONS } from "./domain";
 import { evaluateRules } from "./rules/engine";
+import { fluidDays } from "./fluids";
 import type { DataNotice, Flag } from "./rules/types";
 import { computeTrends, type TrendSummary } from "./rules/trends";
 import type { EntryInput, ReviewInput } from "./validation";
@@ -277,7 +278,7 @@ export function getPatientOverview(viewer: User, patientId: string, now = new Da
   if (!row) throw new AccessError();
   const tz = getConfig().timezone;
   const entries = loadEntries(patientId);
-  const { flags, notices } = evaluateRules(entries, now, tz);
+  const { flags, notices } = evaluateRules(entries, now, tz, undefined, fluidDays(patientId, tz, now));
   const reviews = loadReviews(patientId);
   const patient = getDb().prepare("SELECT id, email, name, role, title, organization, about, is_synthetic FROM users WHERE id = ?").get(patientId) as {
     id: string; email: string; name: string; role: "patient"; title: string | null; organization: string | null; about: string | null; is_synthetic: number;
@@ -320,7 +321,7 @@ export function getCaseload(viewer: User, now = new Date()): CaseloadRow[] {
     .all(viewer.id) as { id: string; name: string; about: string | null; is_synthetic: number }[];
   return patients.map((p) => {
     const entries = loadEntries(p.id);
-    const { flags, notices } = evaluateRules(entries, now, tz);
+    const { flags, notices } = evaluateRules(entries, now, tz, undefined, fluidDays(p.id, tz, now));
     const reviews = loadReviews(p.id);
     const withStatus = attachStatus(flags, entries, reviews);
     return {
@@ -337,7 +338,7 @@ export function getCaseload(viewer: User, now = new Date()): CaseloadRow[] {
 export function createReview(viewer: User, patientId: string, input: ReviewInput, now = new Date()): ReviewRecord {
   assertPractitionerFor(viewer, patientId);
   const entries = loadEntries(patientId);
-  const { flags } = evaluateRules(entries, now, getConfig().timezone);
+  const { flags } = evaluateRules(entries, now, getConfig().timezone, undefined, fluidDays(patientId, getConfig().timezone, now));
   const flag = flags.find((f) => f.key === input.flagKey);
   if (!flag) throw new InputError("That flag is no longer active for this patient. Refresh to see the latest.");
   const needsFollowUp = REVIEW_DECISIONS.find((d) => d.id === input.decision)?.followUp ?? false;

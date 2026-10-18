@@ -11,6 +11,8 @@ import { getConfig } from "@/lib/config";
 import { GutNudge } from "@/components/patient/GutNudge";
 import { PatternChart } from "@/components/patient/PatternChart";
 import { describePattern } from "@/lib/pattern";
+import { fluidDays } from "@/lib/fluids";
+import { hydrationSummary } from "@/lib/hydration";
 import type { DayPoint } from "@/lib/rules/trends";
 import { getPatientOverview, listSharing } from "@/lib/records";
 import { DEMO_ACCOUNTS } from "@/lib/seed";
@@ -72,8 +74,10 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
   const weekLogs = weekEntries.filter((e) => e.kind === "movement").length;
   const weekSymptoms = weekEntries.reduce((n, e) => n + (e.symptoms?.length ?? 0), 0);
   const isEmpty = o.entries.length === 0;
-  const pattern = describePattern(o.entries, now, tz);
-  const showNudge = pattern.findings.some((f) => f.kind === "harder" || f.kind === "gap" || f.kind === "looser");
+  const fluids = fluidDays(user.id, tz, now, 30);
+  const pattern = describePattern(o.entries, now, tz, 14, fluids);
+  const water = hydrationSummary(user, user.id, now);
+  const showNudge = pattern.findings.some((f) => f.kind === "harder" || f.kind === "gap" || f.kind === "looser" || f.kind === "fluids");
 
   const sub = isEmpty
     ? "Welcome in. Your first log takes about ten seconds."
@@ -114,6 +118,29 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           </Link>
           <NoMovementButton alreadyLoggedToday={movementToday} alreadyConfirmed={noneToday} />
         </div>
+
+        <Link href="/me/water" className="card water-mini" aria-label={`Water today: ${(water.ml / 1000).toFixed(1)} litres. Open water tracking`}>
+          <span className="item-icon" style={{ background: "var(--sky)", color: "var(--sky-ink)" }}>
+            <Icon name="water" size={18} />
+          </span>
+          <span className="grow">
+            <span className="item-title" style={{ display: "block" }}>
+              Water today: {(water.ml / 1000).toFixed(1)} L
+            </span>
+            <span className="item-sub">
+              {water.sources.includes("simulated")
+                ? "Includes simulated sips"
+                : water.sources.includes("bottle")
+                  ? "From your bottle (estimate)"
+                  : water.ml
+                    ? "Added by you"
+                    : water.week.some((d) => d.simulated)
+                      ? "Nothing yet today · earlier days include simulated sips"
+                      : "Tap to add a glass or pair your bottle"}
+            </span>
+          </span>
+          <Icon name="chevron" size={18} className="chev" />
+        </Link>
 
         {showNudge && (
           <>

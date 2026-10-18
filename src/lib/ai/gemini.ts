@@ -467,8 +467,12 @@ export interface FlagExplanation {
   worthChecking: string;
 }
 
-export async function explainFlag(model: JsonModel, args: { flag: Flag; entries: Entry[]; timeZone: string }, now = new Date()): Promise<FlagExplanation> {
-  const { flag, entries, timeZone } = args;
+export async function explainFlag(
+  model: JsonModel,
+  args: { flag: Flag; entries: Entry[]; timeZone: string; fluids?: { day: string; ml: number; estimated: boolean; simulated: boolean }[] },
+  now = new Date(),
+): Promise<FlagExplanation> {
+  const { flag, entries, timeZone, fluids } = args;
   const evidence = new Set(flag.evidenceIds);
   const start = new Date(flag.windowStart).getTime() - 14 * 86_400_000;
   const shown = entries.filter((e) => evidence.has(e.id) || new Date(e.occurredAt).getTime() >= start).slice(0, 80);
@@ -488,7 +492,8 @@ export async function explainFlag(model: JsonModel, args: { flag: Flag; entries:
 What changed: ${flag.whatChanged}
 Rule: ${flag.ruleDescription}
 Window: ${flag.windowStart} to ${flag.windowEnd}
-
+Caveat: ${flag.caveat}
+${fluids?.length ? `\nDaily fluids (ml${fluids.some((f) => f.simulated) ? ", simulated demo data" : fluids.some((f) => f.estimated) ? ", estimated from sip counts" : ""}):\n${fluids.map((f) => `- ${f.day}: ${f.ml}`).join("\n")}\n` : ""}
 Entries (evidence entries are marked; the rest are the patient's own recent baseline):
 ${[...shown].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt)).map(line).join("\n")}
 
