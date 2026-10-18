@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Womby } from "@/components/Womby";
 
-type Insight = { model: string; generatedAt: string; days: number; entryCount: number; headline: string; observations: string[]; tip: string };
+type Insight = { model: string; generatedAt: string; days: number; entryCount: number; headline: string; why: string[]; tryThis: string[]; talkToSomeone: string };
 type State = { kind: "idle" } | { kind: "busy" } | { kind: "ok"; insight: Insight } | { kind: "note"; message: string };
 
 /** On request, Gemini reads the person's own entries for this range and describes patterns. Clearly an AI estimate. */
@@ -37,7 +37,7 @@ export function AiInsight({ days, aiEnabled }: { days: number; aiEnabled: boolea
       {state.kind === "idle" && (
         <>
           <p className="small" style={{ margin: 0 }}>
-            Ask Gemini to look over your last {days === 7 ? "week" : `${days} days`} of entries and describe what stands out, in plain words.
+            Ask Gemini why your last {days === 7 ? "week" : `${days} days`} may look like this, and what everyday habits could help your gut feel its best.
           </p>
           <button type="button" className="btn btn-secondary btn-sm" style={{ alignSelf: "flex-start" }} onClick={run}>
             <Icon name="sparkle" size={16} /> Ask Gemini
@@ -65,17 +65,32 @@ export function AiInsight({ days, aiEnabled }: { days: number; aiEnabled: boolea
           <p className="strong" style={{ margin: 0 }}>
             {state.insight.headline}
           </p>
-          {state.insight.observations.length > 0 && (
-            <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
-              {state.insight.observations.map((o, i) => (
-                <li key={i}>{o}</li>
-              ))}
-            </ul>
+          {state.insight.why.length > 0 && (
+            <div className="stack-1">
+              <h3 className="insight-h">Why it may look like this</h3>
+              <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
+                {state.insight.why.map((o, i) => (
+                  <li key={i}>{o}</li>
+                ))}
+              </ul>
+            </div>
           )}
-          {state.insight.tip && (
+          {state.insight.tryThis.length > 0 && (
+            <div className="stack-1">
+              <h3 className="insight-h">Things you could try</h3>
+              <ul className="insight-try">
+                {state.insight.tryThis.map((o, i) => (
+                  <li key={i}>
+                    <Icon name="leaf" size={14} /> <span>{o}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {state.insight.talkToSomeone && (
             <p className="small" style={{ margin: 0 }}>
-              <span className="strong">Idea: </span>
-              {state.insight.tip}
+              <span className="strong">When to check in: </span>
+              {state.insight.talkToSomeone}
             </p>
           )}
           <p className="tiny muted" style={{ margin: 0 }}>

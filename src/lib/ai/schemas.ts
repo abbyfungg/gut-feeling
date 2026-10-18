@@ -90,23 +90,60 @@ export const summaryResponseSchema = z.object({
 });
 export type SummaryResponse = z.infer<typeof summaryResponseSchema>;
 
-/** JSON schema for the patient's own "what Gemini noticed" insight. */
+/** JSON schema for the patient's own "why is it trending like this, and what can I try" read. */
 export const insightResponseJsonSchema = {
   type: "object",
   properties: {
-    headline: { type: "string", description: "One warm, plain-language sentence about the overall pattern. No diagnosis." },
-    observations: {
+    headline: { type: "string", description: "One warm, plain-language sentence about the overall trend. No diagnosis." },
+    why: {
       type: "array",
-      items: { type: "string", description: "One short sentence about a pattern in the entries (timing, type, symptoms, context)." },
       maxItems: 3,
+      items: {
+        type: "string",
+        description: "A possible reason for the trend, grounded in what the entries show (timing, context tags, symptoms, notes). Use tentative words like 'may' or 'around the same time'.",
+      },
     },
-    gentle_tip: { type: "string", description: "One general, everyday wellbeing idea (e.g. keep logging, note meals). Not medical advice." },
+    try_this: {
+      type: "array",
+      maxItems: 4,
+      items: { type: "string", description: "One practical, everyday habit that supports regular, comfortable bowel movements (fibre, fluids, movement, routine, unhurried toilet time). General wellbeing, not treatment." },
+    },
+    talk_to_someone: { type: "string", description: "One sentence on when it would be sensible to check in with a healthcare provider, based on these entries. Calm, not alarming." },
   },
-  required: ["headline", "observations", "gentle_tip"],
+  required: ["headline", "why", "try_this", "talk_to_someone"],
 } as const;
 
 export const insightResponseSchema = z.object({
   headline: z.string().min(1).max(300),
-  observations: z.array(z.string().min(1).max(300)).max(4),
-  gentle_tip: z.string().max(300).default(""),
+  why: z.array(z.string().min(1).max(320)).max(4),
+  try_this: z.array(z.string().min(1).max(260)).max(5),
+  talk_to_someone: z.string().max(320).default(""),
+});
+
+/** JSON schema for Gemini explaining one rule-based flag to the care team. */
+export const flagExplainJsonSchema = {
+  type: "object",
+  properties: {
+    explanation: { type: "string", description: "2-3 plain sentences: why this rule fired for this patient, in terms of what changed versus their own usual. No diagnosis or cause." },
+    signals: {
+      type: "array",
+      maxItems: 6,
+      items: {
+        type: "object",
+        properties: {
+          entry_id: { type: "string", description: "An entry id exactly as given." },
+          why_it_matters: { type: "string", description: "One short clause on what this entry contributes to the flag." },
+        },
+        required: ["entry_id", "why_it_matters"],
+      },
+    },
+    worth_checking: { type: "string", description: "One neutral thing the clinician may want to ask or check. Not an order." },
+  },
+  required: ["explanation", "signals", "worth_checking"],
+} as const;
+
+export const flagExplainSchema = z.object({
+  explanation: z.string().min(1).max(900),
+  signals: z.array(z.object({ entry_id: z.string(), why_it_matters: z.string().min(1).max(240) })).max(10),
+  worth_checking: z.string().max(300).default(""),
 });

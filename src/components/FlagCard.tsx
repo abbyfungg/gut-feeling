@@ -6,6 +6,7 @@ import { FlagStatusText, Severity, SourceBadge } from "./care/bits";
 import { FollowUpDone } from "./FollowUpDone";
 import { Icon } from "./Icon";
 import { ReviewForm } from "./ReviewForm";
+import { FlagExplain } from "./care/FlagExplain";
 
 export type EntryRef = { label: string; group: string };
 
@@ -74,6 +75,12 @@ export function FlagCard({
           <Icon name="info" size={14} />
           <span>{flag.caveat}</span>
         </p>
+        <FlagExplain
+          patientId={patientId}
+          flagKey={flag.key}
+          labels={Object.fromEntries(Object.entries(entries).map(([k, v]) => [k, v.label]))}
+          hrefFor={Object.fromEntries(Object.keys(entries).map((k) => [k, evidenceHref(k)]))}
+        />
       </div>
 
       <div className="flag-review">

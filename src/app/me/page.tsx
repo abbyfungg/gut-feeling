@@ -72,7 +72,7 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
   const sub = isEmpty
     ? "Welcome in. Your first log takes about ten seconds."
     : activeFlags.some((f) => f.status !== "reviewed")
-      ? "A couple of things are worth a look below."
+      ? `${activeFlags.filter((f) => f.status !== "reviewed").length === 1 ? "One pattern is" : `${activeFlags.filter((f) => f.status !== "reviewed").length} patterns are`} worth a look today.`
       : movementToday || noneToday
         ? "You've checked in today. Nice work."
         : "Your gut's been busy lately.";
@@ -88,17 +88,17 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
 
       <div className="stack-6">
         <section className="hero" aria-label="Today">
-          <div className="hero-scene" aria-hidden="true">
-            <PixelScene height={34} seed={11} />
-          </div>
           <div className="hero-content">
             <h1>
-              {sp.welcome ? "Welcome" : greeting(tz, now)}, {firstName}!
+              {sp.welcome ? "Welcome" : greeting(tz, now)}, {firstName}
             </h1>
             <p>{sub}</p>
           </div>
-          <div className="hero-womby">
-            <Womby pose={isEmpty ? "wave" : "happy"} size={84} label={true} bob />
+          <div className="hero-scene" aria-hidden="true">
+            <PixelScene height={30} seed={11} />
+            <div className="hero-womby">
+              <Womby pose={isEmpty ? "wave" : "happy"} size={76} label={true} bob />
+            </div>
           </div>
         </section>
 

@@ -1473,3 +1473,29 @@ th[aria-sort="descending"] .sort-btn svg {
     display: block;
   }
 }
+
+/* Gemini "why was this flagged" */
+.flag-explain {
+  margin-top: var(--s-3);
+}
+.flag-explain-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--lavender);
+  border: 1px solid color-mix(in srgb, var(--lavender-ink) 25%, transparent);
+  font-size: var(--fs-14);
+}
+.flag-explain-box p {
+  margin: 0;
+}
+.flag-explain-box ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
