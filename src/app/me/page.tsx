@@ -4,6 +4,7 @@ import { NoMovementButton } from "@/components/NoMovementButton";
 import { PatientFlags } from "@/components/PatientFlags";
 import { PixelScene } from "@/components/PixelScene";
 import { Womby } from "@/components/Womby";
+import { WombyFact } from "@/components/WombyFact";
 import { EntryList } from "@/components/patient/EntryList";
 import { groupOf } from "@/components/patient/meta";
 import { getConfig } from "@/lib/config";
@@ -107,6 +108,8 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           </Link>
           <NoMovementButton alreadyLoggedToday={movementToday} alreadyConfirmed={noneToday} />
         </div>
+
+        <WombyFact start={Math.floor(now.getTime() / 3_600_000)} pose={isEmpty ? "curious" : "encouraging"} />
 
         {isEmpty ? (
           <section className="card stack" aria-labelledby="how">

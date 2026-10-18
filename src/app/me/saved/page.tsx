@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { PixelScene } from "@/components/PixelScene";
 import { Womby } from "@/components/Womby";
+import { WombyFact } from "@/components/WombyFact";
+import { seedFrom } from "@/lib/facts";
 import { entryTitle } from "@/components/patient/EntryList";
 import { getEntry } from "@/lib/records";
 import { requirePage } from "@/lib/session";
@@ -50,6 +52,7 @@ export default async function Saved({ searchParams }: { searchParams: Promise<{ 
             <Icon name="plus" size={18} /> Log another
           </Link>
         </div>
+        <WombyFact start={seedFrom(id ?? "saved")} showMascot={false} />
       </div>
     </main>
   );

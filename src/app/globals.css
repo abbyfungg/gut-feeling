@@ -1677,3 +1677,58 @@ a.entry:hover {
 .theme-opt .scene {
   height: 100%;
 }
+
+/* Womby's gut facts */
+.womby-fact {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-3);
+}
+.womby-fact-mascot {
+  flex: none;
+  line-height: 0;
+}
+.womby-fact-bubble {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background: var(--butter);
+  color: var(--text);
+  border-radius: var(--r-lg);
+  border-bottom-left-radius: 4px;
+  padding: var(--s-3) var(--s-4);
+}
+.womby-fact-bubble::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  background: var(--butter);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+.womby-fact-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: 4px;
+}
+.womby-fact-head .eyebrow {
+  color: var(--butter-ink);
+}
+.womby-fact-head .link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--butter-ink);
+}
+.womby-fact p {
+  margin: 0;
+  font-size: var(--fs-14);
+  line-height: 1.5;
+}
+.womby-fact.compact .womby-fact-bubble {
+  padding: var(--s-2) var(--s-3);
+}

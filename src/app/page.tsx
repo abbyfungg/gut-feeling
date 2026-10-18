@@ -65,6 +65,11 @@ export default async function Landing() {
                     </Link>
                   </>
                 )}
+                {demo && (
+                  <a href="#demo" className="btn btn-ghost btn-lg">
+                    <Icon name="sparkle" size={18} /> Try the demo
+                  </a>
+                )}
               </div>
               <p className="mk-assure">
                 <Icon name="lock" size={16} /> Your data is private and always in your control.
@@ -73,6 +78,29 @@ export default async function Landing() {
           </section>
 
           <div className="mk-container">
+            {demo && (
+              <section id="demo" className="mk-section" aria-labelledby="demo-title" style={{ scrollMarginTop: 24 }}>
+                <div className="mk-demo">
+                  <div className="stack-3">
+                    <span className="badge badge-demo" style={{ width: "fit-content" }}>
+                      Fictional people · synthetic data
+                    </span>
+                    <h2 id="demo-title">{user ? "Switch to a demo account" : "Try the demo"}</h2>
+                    <p className="muted" style={{ maxWidth: "46ch" }}>
+                      Look around as a patient or as a nurse, with three weeks of sample entries, patterns to review, and live Gemini photo analysis. These people are made up, and nothing here touches real health records.
+                    </p>
+                  </div>
+                  <DemoSignIn
+                    password={DEMO_PASSWORD}
+                    accounts={[
+                      { label: "I'm Maya", sub: "Patient view", email: DEMO_ACCOUNTS.patient, kind: "patient" },
+                      { label: "I'm Nurse Priya", sub: "Care-team view", email: DEMO_ACCOUNTS.practitioner, kind: "care" },
+                    ]}
+                  />
+                </div>
+              </section>
+            )}
+
             <section className="mk-section" aria-labelledby="features-title">
               <div className="mk-section-head">
                 <span className="eyebrow">What it does</span>
@@ -91,29 +119,6 @@ export default async function Landing() {
                 ))}
               </ul>
             </section>
-
-            {demo && !user && (
-              <section className="mk-section" aria-labelledby="demo-title">
-                <div className="mk-demo">
-                  <div className="stack-3">
-                    <span className="badge badge-demo" style={{ width: "fit-content" }}>
-                      Fictional people · synthetic data
-                    </span>
-                    <h2 id="demo-title">Try the demo</h2>
-                    <p className="muted" style={{ maxWidth: "46ch" }}>
-                      Look around as a patient or as a nurse. These accounts are made up, and nothing here touches real health records.
-                    </p>
-                  </div>
-                  <DemoSignIn
-                    password={DEMO_PASSWORD}
-                    accounts={[
-                      { label: "I'm Maya", sub: "Patient view", email: DEMO_ACCOUNTS.patient, kind: "patient" },
-                      { label: "I'm Nurse Priya", sub: "Care-team view", email: DEMO_ACCOUNTS.practitioner, kind: "care" },
-                    ]}
-                  />
-                </div>
-              </section>
-            )}
 
             <section className="mk-section" aria-labelledby="honest-title">
               <div className="mk-section-head">
